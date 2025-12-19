@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm bookstore palette */
+    --background: 45 33% 97%;
+    --foreground: 220 30% 15%;
+
+    --card: 45 40% 99%;
+    --card-foreground: 220 30% 15%;
+
+    --popover: 45 40% 99%;
+    --popover-foreground: 220 30% 15%;
+
+    --primary: 25 85% 55%;
+    --primary-foreground: 45 40% 99%;
+
+    --secondary: 220 25% 20%;
+    --secondary-foreground: 45 40% 99%;
+
+    --muted: 45 20% 92%;
+    --muted-foreground: 220 15% 45%;
+
+    --accent: 35 90% 60%;
+    --accent-foreground: 220 30% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 45 40% 99%;
+
+    --border: 35 25% 85%;
+    --input: 35 25% 88%;
+    --ring: 25 85% 55%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --cream: 45 45% 95%;
+    --cream-dark: 40 30% 90%;
+    --navy: 220 40% 18%;
+    --navy-light: 220 30% 30%;
+    --copper: 25 85% 55%;
+    --copper-light: 30 80% 65%;
+    --copper-dark: 20 85% 45%;
+    --gold: 42 90% 55%;
+    --sage: 140 20% 45%;
+
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(25 85% 55%) 0%, hsl(35 90% 60%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(45 33% 97%) 0%, hsl(40 30% 92%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(45 40% 99%) 0%, hsl(45 35% 96%) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(220 30% 15% / 0.08);
+    --shadow-medium: 0 8px 30px -6px hsl(220 30% 15% / 0.12);
+    --shadow-large: 0 20px 50px -12px hsl(220 30% 15% / 0.15);
+    --shadow-glow: 0 0 40px hsl(25 85% 55% / 0.2);
+
+    /* Sidebar */
+    --sidebar-background: 45 30% 96%;
+    --sidebar-foreground: 220 30% 20%;
+    --sidebar-primary: 25 85% 55%;
+    --sidebar-primary-foreground: 45 40% 99%;
+    --sidebar-accent: 40 25% 92%;
+    --sidebar-accent-foreground: 220 30% 20%;
+    --sidebar-border: 35 25% 88%;
+    --sidebar-ring: 25 85% 55%;
+  }
+
+  .dark {
+    --background: 220 35% 10%;
+    --foreground: 45 30% 95%;
+
+    --card: 220 30% 14%;
+    --card-foreground: 45 30% 95%;
+
+    --popover: 220 30% 14%;
+    --popover-foreground: 45 30% 95%;
+
+    --primary: 30 85% 58%;
+    --primary-foreground: 220 35% 10%;
+
+    --secondary: 45 25% 85%;
+    --secondary-foreground: 220 35% 10%;
+
+    --muted: 220 25% 18%;
+    --muted-foreground: 45 20% 65%;
+
+    --accent: 35 85% 55%;
+    --accent-foreground: 220 35% 10%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 45 30% 95%;
+
+    --border: 220 25% 22%;
+    --input: 220 25% 20%;
+    --ring: 30 85% 58%;
+
+    --cream: 220 30% 16%;
+    --cream-dark: 220 25% 12%;
+    --navy: 45 30% 95%;
+    --navy-light: 45 25% 80%;
+    --copper: 30 85% 58%;
+    --copper-light: 35 80% 68%;
+    --copper-dark: 25 85% 48%;
+
+    --sidebar-background: 220 30% 12%;
+    --sidebar-foreground: 45 25% 90%;
+    --sidebar-primary: 30 85% 58%;
+    --sidebar-primary-foreground: 220 35% 10%;
+    --sidebar-accent: 220 25% 18%;
+    --sidebar-accent-foreground: 45 25% 90%;
+    --sidebar-border: 220 25% 20%;
+    --sidebar-ring: 30 85% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+  
+  .font-body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-large {
+    box-shadow: var(--shadow-large);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
