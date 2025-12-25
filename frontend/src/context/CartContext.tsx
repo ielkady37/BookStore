@@ -1,82 +1,88 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Book, CartItem } from '@/types';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Book, CartItem } from '@/data/mockData';
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (book: Book, quantity?: number) => void;
-  removeFromCart: (isbn: string) => void;
-  updateQuantity: (isbn: string, quantity: number) => void;
+  addToCart: (book: Book) => void;
+  removeFromCart: (bookId: string) => void;
+  updateQuantity: (bookId: string, quantity: number) => void;
   clearCart: () => void;
-  totalItems: number;
-  totalPrice: number;
+  total: number;
+  itemCount: number;
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const addToCart = useCallback((book: Book, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((item) => item.book.isbn === book.isbn);
-      if (existing) {
-        const newQty = Math.min(existing.quantity + quantity, book.quantity);
-        toast.success(`Updated "${book.title}" quantity in cart`);
-        return prev.map((item) =>
-          item.book.isbn === book.isbn ? { ...item, quantity: newQty } : item
+  const addToCart = (book: Book) => {
+    setItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.book.id === book.id);
+      if (existingItem) {
+        return prevItems.map((item) =>
+          item.book.id === book.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      toast.success(`Added "${book.title}" to cart`);
-      return [...prev, { book, quantity: Math.min(quantity, book.quantity) }];
+      return [...prevItems, { book, quantity: 1 }];
     });
-  }, []);
+  };
 
-  const removeFromCart = useCallback((isbn: string) => {
-    setItems((prev) => {
-      const item = prev.find((i) => i.book.isbn === isbn);
-      if (item) {
-        toast.info(`Removed "${item.book.title}" from cart`);
-      }
-      return prev.filter((item) => item.book.isbn !== isbn);
-    });
-  }, []);
+  const removeFromCart = (bookId: string) => {
+    setItems((prevItems) => prevItems.filter((item) => item.book.id !== bookId));
+  };
 
-  const updateQuantity = useCallback((isbn: string, quantity: number) => {
+  const updateQuantity = (bookId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(isbn);
+      removeFromCart(bookId);
       return;
     }
-    setItems((prev) =>
-      prev.map((item) =>
-        item.book.isbn === isbn
-          ? { ...item, quantity: Math.min(quantity, item.book.quantity) }
-          : item
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.book.id === bookId ? { ...item, quantity } : item
       )
     );
-  }, [removeFromCart]);
+  };
 
-  const clearCart = useCallback(() => {
+  const clearCart = () => {
     setItems([]);
-    toast.info('Cart cleared');
-  }, []);
+  };
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + item.book.price * item.quantity, 0);
+  const total = items.reduce(
+    (sum, item) => sum + item.book.price * item.quantity,
+    0
+  );
+
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice }}
+      value={{
+        items,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        total,
+        itemCount,
+        isCartOpen,
+        setIsCartOpen,
+      }}
     >
       {children}
     </CartContext.Provider>
   );
-};
+}
 
-export const useCart = () => {
+export function useCart() {
   const context = useContext(CartContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
-};
+}
