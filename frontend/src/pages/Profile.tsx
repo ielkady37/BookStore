@@ -1,47 +1,70 @@
-import { useState } from 'react';
-import { Header } from '@/components/Header';
-import { CartDrawer } from '@/components/CartDrawer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { mockUser, mockOrders } from '@/data/mockData';
-import { User, Mail, Phone, MapPin, Package, Edit2, Save, X } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
+import { Header } from "@/components/Header";
+import { CartDrawer } from "@/components/CartDrawer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { User, Edit2, Save, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/services/api";
 
-const Profile = () => {
+export default function Profile() {
+  const { user: authUser } = useAuth();
+  const { toast } = useToast();
+
   const [isEditing, setIsEditing] = useState(false);
-  const [userData, setUserData] = useState(mockUser);
-  const [editData, setEditData] = useState(mockUser);
+  const [userData, setUserData] = useState<any>(authUser || {});
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
-  const handleSave = () => {
-    setUserData(editData);
-    setIsEditing(false);
-    toast({
-      title: 'Profile Updated',
-      description: 'Your profile has been updated successfully.',
-    });
-  };
+  // Fetch Orders on Mount
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const res = await api.get("/orders/my-orders");
+        setOrders(res.data.data.orders);
+      } catch (error) {
+        console.error("Error fetching orders");
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
-  const handleCancel = () => {
-    setEditData(userData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      await api.patch("/users/update-me", {
+        fname: userData.fname,
+        lname: userData.lname,
+        phone: userData.phone,
+        address: userData.address,
+      });
+
+      setIsEditing(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your changes have been saved.",
+      });
+    } catch (err) {
+      toast({ title: "Update Failed", variant: "destructive" });
+    }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Delivered':
-        return 'success';
-      case 'Shipped':
-        return 'default';
-      case 'Processing':
-        return 'warning';
-      default:
-        return 'secondary';
-    }
+    return status === "Completed" ? "default" : "secondary";
   };
 
   return (
@@ -51,53 +74,52 @@ const Profile = () => {
 
       <main className="container py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
-          {/* Profile Header */}
+          {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center shadow-lg">
-              <User className="h-10 w-10 text-primary-foreground" />
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center shadow-lg">
+              <User className="h-10 w-10 text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-3xl font-bold">{userData.name}</h1>
+              <h1 className="font-display text-3xl font-bold">
+                {userData.fname} {userData.lname}
+              </h1>
               <p className="text-muted-foreground">{userData.email}</p>
             </div>
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="profile" className="gap-2">
-                <User className="h-4 w-4" />
-                Profile
-              </TabsTrigger>
-              <TabsTrigger value="orders" className="gap-2">
-                <Package className="h-4 w-4" />
-                Orders
-              </TabsTrigger>
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="orders">Orders</TabsTrigger>
             </TabsList>
 
             {/* Profile Tab */}
             <TabsContent value="profile">
-              <Card className="shadow-elegant">
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="font-display text-xl">Personal Information</CardTitle>
-                    <CardDescription>
-                      Manage your personal details and shipping address.
-                    </CardDescription>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription>Manage your details</CardDescription>
                   </div>
                   {!isEditing ? (
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" /> Edit
                     </Button>
                   ) : (
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={handleCancel}>
-                        <X className="h-4 w-4 mr-2" />
-                        Cancel
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing(false)}
+                      >
+                        <X className="h-4 w-4" /> Cancel
                       </Button>
-                      <Button variant="default" size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
+                      <Button size="sm" onClick={handleSave}>
+                        <Save className="h-4 w-4" /> Save
                       </Button>
                     </div>
                   )}
@@ -105,71 +127,45 @@ const Profile = () => {
                 <CardContent className="space-y-6">
                   <div className="grid gap-6 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        Full Name
-                      </Label>
-                      {isEditing ? (
-                        <Input
-                          id="name"
-                          value={editData.name}
-                          onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                        />
-                      ) : (
-                        <p className="text-foreground font-medium">{userData.name}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        Email Address
-                      </Label>
-                      {isEditing ? (
-                        <Input
-                          id="email"
-                          type="email"
-                          value={editData.email}
-                          onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                        />
-                      ) : (
-                        <p className="text-foreground font-medium">{userData.email}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        Phone Number
-                      </Label>
-                      {isEditing ? (
-                        <Input
-                          id="phone"
-                          value={editData.phone}
-                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                        />
-                      ) : (
-                        <p className="text-foreground font-medium">{userData.phone}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address" className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      Shipping Address
-                    </Label>
-                    {isEditing ? (
+                      <Label>First Name</Label>
                       <Input
-                        id="address"
-                        value={editData.address}
-                        onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                        disabled={!isEditing}
+                        value={userData.fname}
+                        onChange={(e) =>
+                          setUserData({ ...userData, fname: e.target.value })
+                        }
                       />
-                    ) : (
-                      <p className="text-foreground font-medium">{userData.address}</p>
-                    )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last Name</Label>
+                      <Input
+                        disabled={!isEditing}
+                        value={userData.lname}
+                        onChange={(e) =>
+                          setUserData({ ...userData, lname: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Phone</Label>
+                      <Input
+                        disabled={!isEditing}
+                        value={userData.phone}
+                        onChange={(e) =>
+                          setUserData({ ...userData, phone: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Address</Label>
+                      <Input
+                        disabled={!isEditing}
+                        value={userData.address}
+                        onChange={(e) =>
+                          setUserData({ ...userData, address: e.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -177,54 +173,48 @@ const Profile = () => {
 
             {/* Orders Tab */}
             <TabsContent value="orders">
-              <Card className="shadow-elegant">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="font-display text-xl">Order History</CardTitle>
-                  <CardDescription>
-                    View and track your past orders.
-                  </CardDescription>
+                  <CardTitle>Order History</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {mockOrders.map((order) => (
-                      <div
-                        key={order.id}
-                        className="p-4 rounded-lg border border-border bg-muted/30 space-y-4"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="space-y-1">
-                            <p className="font-semibold">{order.orderNo}</p>
-                            <p className="text-sm text-muted-foreground">{order.date}</p>
-                          </div>
-                          <Badge variant={getStatusColor(order.status) as any}>
-                            {order.status}
-                          </Badge>
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-2">
-                          {order.books.map((book, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span>
-                                {book.title} <span className="text-muted-foreground">× {book.quantity}</span>
-                              </span>
-                              <span className="font-medium">${(book.price * book.quantity).toFixed(2)}</span>
+                  {loadingOrders ? (
+                    <p>Loading...</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <div
+                          key={order.order_id}
+                          className="p-4 border rounded-lg space-y-4"
+                        >
+                          <div className="flex justify-between">
+                            <div>
+                              <p className="font-semibold">
+                                Order #{order.order_id}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(
+                                  order.order_date
+                                ).toLocaleDateString()}
+                              </p>
                             </div>
-                          ))}
+                            <Badge
+                              variant={getStatusColor(order.status) as any}
+                            >
+                              {order.status}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between font-bold">
+                            <span>Total</span>
+                            <span>${order.total_amount}</span>
+                          </div>
                         </div>
-
-                        <Separator />
-
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold">Total</span>
-                          <span className="font-display text-lg font-bold text-primary">
-                            ${order.total.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                      {orders.length === 0 && (
+                        <p className="text-muted-foreground">No past orders.</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -233,6 +223,4 @@ const Profile = () => {
       </main>
     </div>
   );
-};
-
-export default Profile;
+}

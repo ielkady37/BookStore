@@ -1,23 +1,26 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { useCart } from '@/context/CartContext';
-import { ShoppingCart, User, BookOpen, Menu } from 'lucide-react';
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { ShoppingCart, BookOpen, Menu, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Header() {
   const { itemCount, setIsCartOpen } = useCart();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navLinks = [
-    { to: '/', label: 'Browse' },
-    { to: '/profile', label: 'My Account' },
-    { to: '/admin', label: 'Admin' },
-  ];
-
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,23 +37,41 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link key={link.to} to={link.to}>
+          <Link to="/">
+            <Button variant={isActive("/") ? "secondary" : "ghost"} size="sm">
+              Browse
+            </Button>
+          </Link>
+
+          {/* Only show 'My Account' if logged in */}
+          {isAuthenticated && (
+            <Link to="/profile">
               <Button
-                variant={isActive(link.to) ? 'secondary' : 'ghost'}
+                variant={isActive("/profile") ? "secondary" : "ghost"}
                 size="sm"
-                className={isActive(link.to) ? 'font-semibold' : ''}
               >
-                {link.label}
+                My Account
               </Button>
             </Link>
-          ))}
+          )}
+
+          {/* Only show 'Admin' if user is Admin */}
+          {isAdmin && (
+            <Link to="/admin">
+              <Button
+                variant={isActive("/admin") ? "secondary" : "ghost"}
+                size="sm"
+              >
+                Admin Dashboard
+              </Button>
+            </Link>
+          )}
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          
+
           <Button
             variant="ghost"
             size="icon"
@@ -65,17 +86,28 @@ export function Header() {
             )}
           </Button>
 
-          <Link to="/profile" className="hidden md:block">
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
-
-          <Link to="/auth" className="hidden md:block">
-            <Button variant="default" size="sm">
-              Sign In
-            </Button>
-          </Link>
+          {/* User Status Icons (Desktop) */}
+          {isAuthenticated ? (
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                Hi, {user?.fname}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </div>
+          ) : (
+            <Link to="/auth" className="hidden md:block">
+              <Button variant="default" size="sm">
+                Sign In
+              </Button>
+            </Link>
+          )}
 
           {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -86,25 +118,48 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-64">
               <nav className="flex flex-col gap-2 mt-8">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Button
-                      variant={isActive(link.to) ? 'secondary' : 'ghost'}
-                      className="w-full justify-start"
-                    >
-                      {link.label}
-                    </Button>
-                  </Link>
-                ))}
-                <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="default" className="w-full mt-4">
-                    Sign In
+                <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start">
+                    Browse
                   </Button>
                 </Link>
+
+                {isAuthenticated && (
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Button variant="ghost" className="w-full justify-start">
+                      My Account
+                    </Button>
+                  </Link>
+                )}
+
+                {isAdmin && (
+                  <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start">
+                      Admin Dashboard
+                    </Button>
+                  </Link>
+                )}
+
+                <div className="border-t pt-4 mt-2">
+                  {isAuthenticated ? (
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={handleLogout}
+                    >
+                      Log Out
+                    </Button>
+                  ) : (
+                    <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="default" className="w-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </nav>
             </SheetContent>
           </Sheet>

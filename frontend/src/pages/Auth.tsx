@@ -1,68 +1,116 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Mail, Lock, User, Phone, MapPin, ArrowLeft } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Mail, Lock, User, MapPin, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
 const Auth = () => {
+  const { login } = useAuth(); // Get the login function
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   // Login form state
   const [loginData, setLoginData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
   // Signup form state
   const [signupData, setSignupData] = useState({
-    username: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
+    username: "",
+    password: "",
+    confirmPassword: "",
+    fname: "", // Split Name into First/Last to match SQL
+    lname: "",
+    email: "",
+    phone: "",
+    address: "",
   });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    toast({
-      title: 'Welcome back!',
-      description: 'You have successfully logged in.',
-    });
+
+    try {
+      // 1. Real API Call
+      const res = await api.post("/users/login", loginData);
+
+      // 2. Update Global State
+      login(res.data.token, res.data.data.user);
+
+      toast({
+        title: "Welcome back!",
+        description: `Logged in as ${res.data.data.user.username}`,
+      });
+
+      // 3. Redirect based on role
+      if (res.data.data.user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Login Failed",
+        description: err.response?.data?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (signupData.password !== signupData.confirmPassword) {
       toast({
-        title: 'Passwords do not match',
-        description: 'Please make sure your passwords match.',
-        variant: 'destructive',
+        title: "Passwords do not match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsLoading(false);
-    toast({
-      title: 'Account created!',
-      description: 'Welcome to Bibliomania. Please check your email to verify your account.',
-    });
+
+    try {
+      // 1. Real API Call
+      const res = await api.post("/users/signup", {
+        username: signupData.username,
+        password: signupData.password,
+        fname: signupData.fname,
+        lname: signupData.lname,
+        email: signupData.email,
+        phone: signupData.phone,
+        address: signupData.address,
+      });
+
+      // 2. Update Global State (Auto-login after signup)
+      login(res.data.token, res.data.data.user);
+
+      toast({
+        title: "Account created!",
+        description: "Welcome to Bibliomania.",
+      });
+
+      navigate("/");
+    } catch (err: any) {
+      toast({
+        title: "Signup Failed",
+        description: err.response?.data?.message || "Could not create account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,7 +121,7 @@ const Auth = () => {
           <div className="absolute top-20 left-20 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-20 w-80 h-80 bg-primary-foreground/5 rounded-full blur-3xl" />
         </div>
-        
+
         <div className="relative z-10 flex flex-col justify-center items-center p-12 text-primary-foreground">
           <div className="w-24 h-24 rounded-2xl bg-primary-foreground/20 flex items-center justify-center mb-8 backdrop-blur-sm">
             <BookOpen className="h-12 w-12" />
@@ -82,24 +130,14 @@ const Auth = () => {
             Welcome to Bibliomania
           </h1>
           <p className="text-primary-foreground/80 text-center max-w-md text-lg">
-            Your gateway to a world of knowledge. Discover, explore, and collect books 
-            that inspire and enlighten.
+            Your gateway to a world of knowledge. Discover, explore, and collect
+            books that inspire and enlighten.
           </p>
-          
-          <div className="mt-12 grid grid-cols-3 gap-6 opacity-60">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="w-16 h-24 bg-primary-foreground/10 rounded-lg backdrop-blur-sm"
-              />
-            ))}
-          </div>
         </div>
       </div>
 
       {/* Right Side - Auth Forms */}
       <div className="flex-1 flex flex-col">
-        {/* Back Button */}
         <div className="p-4">
           <Link to="/">
             <Button variant="ghost" size="sm" className="gap-2">
@@ -111,14 +149,6 @@ const Auth = () => {
 
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-md space-y-8">
-            {/* Mobile Logo */}
-            <div className="lg:hidden text-center">
-              <div className="w-16 h-16 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="h-8 w-8 text-primary-foreground" />
-              </div>
-              <h1 className="font-display text-2xl font-bold">Bibliomania</h1>
-            </div>
-
             <Tabs defaultValue="login" className="space-y-6">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -128,7 +158,9 @@ const Auth = () => {
               {/* Login Form */}
               <TabsContent value="login" className="space-y-4">
                 <div className="text-center space-y-2">
-                  <h2 className="font-display text-2xl font-bold">Welcome Back</h2>
+                  <h2 className="font-display text-2xl font-bold">
+                    Welcome Back
+                  </h2>
                   <p className="text-muted-foreground">
                     Enter your credentials to access your account
                   </p>
@@ -145,7 +177,9 @@ const Auth = () => {
                         placeholder="you@example.com"
                         className="pl-10"
                         value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                        onChange={(e) =>
+                          setLoginData({ ...loginData, email: e.target.value })
+                        }
                         required
                       />
                     </div>
@@ -161,14 +195,25 @@ const Auth = () => {
                         placeholder="••••••••"
                         className="pl-10"
                         value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        onChange={(e) =>
+                          setLoginData({
+                            ...loginData,
+                            password: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Signing in...' : 'Sign In'}
+                  <Button
+                    type="submit"
+                    variant="hero"
+                    size="lg"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
               </TabsContent>
@@ -176,7 +221,9 @@ const Auth = () => {
               {/* Signup Form */}
               <TabsContent value="signup" className="space-y-4">
                 <div className="text-center space-y-2">
-                  <h2 className="font-display text-2xl font-bold">Create Account</h2>
+                  <h2 className="font-display text-2xl font-bold">
+                    Create Account
+                  </h2>
                   <p className="text-muted-foreground">
                     Join our community of book lovers
                   </p>
@@ -193,19 +240,64 @@ const Auth = () => {
                           placeholder="johndoe"
                           className="pl-10"
                           value={signupData.username}
-                          onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
+                          onChange={(e) =>
+                            setSignupData({
+                              ...signupData,
+                              username: e.target.value,
+                            })
+                          }
                           required
                         />
                       </div>
                     </div>
 
+                    {/* Updated: First Name and Last Name instead of Full Name */}
                     <div className="space-y-2">
-                      <Label htmlFor="signup-name">Full Name</Label>
+                      <Label htmlFor="signup-fname">First Name</Label>
                       <Input
-                        id="signup-name"
-                        placeholder="John Doe"
-                        value={signupData.name}
-                        onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
+                        id="signup-fname"
+                        placeholder="John"
+                        value={signupData.fname}
+                        onChange={(e) =>
+                          setSignupData({
+                            ...signupData,
+                            fname: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-lname">Last Name</Label>
+                      <Input
+                        id="signup-lname"
+                        placeholder="Doe"
+                        value={signupData.lname}
+                        onChange={(e) =>
+                          setSignupData({
+                            ...signupData,
+                            lname: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-phone">Phone</Label>
+                      <Input
+                        id="signup-phone"
+                        placeholder="010..."
+                        value={signupData.phone}
+                        onChange={(e) =>
+                          setSignupData({
+                            ...signupData,
+                            phone: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -221,22 +313,12 @@ const Auth = () => {
                         placeholder="you@example.com"
                         className="pl-10"
                         value={signupData.email}
-                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-phone"
-                        placeholder="+1 (555) 123-4567"
-                        className="pl-10"
-                        value={signupData.phone}
-                        onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setSignupData({
+                            ...signupData,
+                            email: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -248,10 +330,15 @@ const Auth = () => {
                       <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-address"
-                        placeholder="123 Book Street, Reading City"
+                        placeholder="123 Street..."
                         className="pl-10"
                         value={signupData.address}
-                        onChange={(e) => setSignupData({ ...signupData, address: e.target.value })}
+                        onChange={(e) =>
+                          setSignupData({
+                            ...signupData,
+                            address: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -265,34 +352,48 @@ const Auth = () => {
                         <Input
                           id="signup-password"
                           type="password"
-                          placeholder="••••••••"
                           className="pl-10"
                           value={signupData.password}
-                          onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                          onChange={(e) =>
+                            setSignupData({
+                              ...signupData,
+                              password: e.target.value,
+                            })
+                          }
                           required
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="signup-confirm">Confirm Password</Label>
+                      <Label htmlFor="signup-confirm">Confirm</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="signup-confirm"
                           type="password"
-                          placeholder="••••••••"
                           className="pl-10"
                           value={signupData.confirmPassword}
-                          onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                          onChange={(e) =>
+                            setSignupData({
+                              ...signupData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
                           required
                         />
                       </div>
                     </div>
                   </div>
 
-                  <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating account...' : 'Create Account'}
+                  <Button
+                    type="submit"
+                    variant="hero"
+                    size="lg"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>

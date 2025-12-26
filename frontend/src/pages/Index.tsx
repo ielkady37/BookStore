@@ -1,46 +1,46 @@
-import { useState, useMemo } from "react";
-import { mockBooks } from "@/data/mockData";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect } from "react";
 import { BookCard } from "@/components/BookCard";
-import { SearchFilters, FilterState } from "@/components/SearchFilters";
+import { SearchFilters } from "@/components/SearchFilters";
 import { Header } from "@/components/Header";
 import { CartDrawer } from "@/components/CartDrawer";
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/services/api";
+import { Book } from "@/types";
 
 const Index = () => {
-  const [filters, setFilters] = useState<FilterState>({
-    search: "",
-    category: "",
-    author: "",
-    publisher: "",
-    isbn: "",
-  });
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const filteredBooks = useMemo(() => {
-    return mockBooks.filter((book) => {
-      const matchesSearch =
-        !filters.search ||
-        book.title.toLowerCase().includes(filters.search.toLowerCase());
-      const matchesCategory =
-        !filters.category ||
-        filters.category === "all" ||
-        book.category === filters.category;
-      const matchesAuthor =
-        !filters.author ||
-        book.author.toLowerCase().includes(filters.author.toLowerCase());
-      const matchesPublisher =
-        !filters.publisher ||
-        book.publisher.toLowerCase().includes(filters.publisher.toLowerCase());
-      const matchesIsbn = !filters.isbn || book.isbn.includes(filters.isbn);
+  const fetchBooks = async (filters: any = {}) => {
+    setLoading(true);
+    try {
+      const res = await api.get("/books", { params: filters });
+      setBooks(res.data.data.books);
+    } catch (error) {
+      console.error("Failed to load books", error);
+      toast({
+        title: "Error",
+        description: "Failed to load books from the library.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesAuthor &&
-        matchesPublisher &&
-        matchesIsbn
-      );
-    });
-  }, [filters]);
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const handleFilterChange = (newFilters: any) => {
+    const cleanFilters = { ...newFilters };
+    if (cleanFilters.category === "all") delete cleanFilters.category;
+
+    fetchBooks(cleanFilters);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,25 +69,37 @@ const Index = () => {
 
       {/* Search & Books Section */}
       <main className="container py-8 md:py-12">
-        <SearchFilters onFilterChange={setFilters} />
+        {/* Pass the handler to SearchFilters */}
+        <SearchFilters onFilterChange={handleFilterChange} />
 
         {/* Results Count */}
         <div className="flex items-center justify-between my-6">
           <p className="text-sm text-muted-foreground">
             Showing{" "}
             <span className="font-semibold text-foreground">
-              {filteredBooks.length}
+              {books.length}
             </span>{" "}
             books
           </p>
         </div>
 
         {/* Book Grid */}
-        {filteredBooks.length > 0 ? (
+        {loading ? (
+          // Loading Skeletons
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredBooks.map((book, index) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div
-                key={book.id}
+                key={i}
+                className="h-[400px] bg-muted/20 animate-pulse rounded-xl"
+              />
+            ))}
+          </div>
+        ) : books.length > 0 ? (
+          // Real Data
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {books.map((book, index) => (
+              <div
+                key={book.isbn} // Use ISBN from SQL
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
@@ -96,6 +108,7 @@ const Index = () => {
             ))}
           </div>
         ) : (
+          // Empty State
           <div className="text-center py-16">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <BookOpen className="h-10 w-10 text-muted-foreground" />

@@ -1,4 +1,5 @@
 const queries = require("./../models/queries/userQueries");
+const catchAsync = require("./../utils/catchAsync");
 
 exports.updateMe = catchAsync(async (req, res, next) => {
   if (req.body.password || req.body.passwordConfirm) {

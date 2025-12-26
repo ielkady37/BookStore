@@ -28,7 +28,7 @@ app.use("/api/v1/reports", reportRouter);
 app.use("/api/v1/publisher-orders", publisherOrderRouter);
 
 // UNHANDLED ROUTES
-app.all("*", (req, res, next) => {
+app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 

@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { AddBookModal } from '@/components/admin/AddBookModal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AddBookModal } from "@/components/admin/AddBookModal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -11,36 +11,70 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockBooks } from '@/data/mockData';
-import { Plus, Search, AlertTriangle, Package, TrendingDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Plus,
+  Search,
+  AlertTriangle,
+  Package,
+  TrendingDown,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import api from "@/services/api";
+import { Book } from "@/types";
 
 const AdminInventory = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const filteredBooks = mockBooks.filter(
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/books");
+      setBooks(res.data.data.books);
+    } catch (error) {
+      console.error("Failed to load inventory");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const filteredBooks = books.filter(
     (book) =>
       book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       book.isbn.includes(searchTerm) ||
-      book.author.toLowerCase().includes(searchTerm.toLowerCase())
+      book.authors.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const lowStockBooks = mockBooks.filter((book) => book.stockQuantity < book.threshold);
-  const outOfStockBooks = mockBooks.filter((book) => book.stockQuantity === 0);
-  const totalBooks = mockBooks.reduce((acc, book) => acc + book.stockQuantity, 0);
+  const lowStockBooks = books.filter(
+    (book) => book.stock_quantity < book.threshold && book.stock_quantity > 0
+  );
+  const outOfStockBooks = books.filter((book) => book.stock_quantity === 0);
+  const totalBooks = books.reduce((acc, book) => acc + book.stock_quantity, 0);
 
   return (
     <div className="flex min-h-screen bg-background">
       <AdminSidebar />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold">Inventory Management</h1>
+            <h1 className="font-display text-3xl font-bold">
+              Inventory Management
+            </h1>
             <p className="text-muted-foreground mt-1">
               Manage your book inventory and stock levels
             </p>
@@ -56,14 +90,16 @@ const AdminInventory = () => {
           <Card className="shadow-elegant">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Books in Stock
+                Total Stock
               </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="font-display text-3xl font-bold">{totalBooks}</div>
+              <div className="font-display text-3xl font-bold">
+                {totalBooks}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                across {mockBooks.length} titles
+                across {books.length} titles
               </p>
             </CardContent>
           </Card>
@@ -71,7 +107,7 @@ const AdminInventory = () => {
           <Card className="shadow-elegant border-warning/20 bg-warning/5">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-warning">
-                Low Stock Alert
+                Low Stock
               </CardTitle>
               <AlertTriangle className="h-4 w-4 text-warning" />
             </CardHeader>
@@ -123,7 +159,7 @@ const AdminInventory = () => {
           <CardHeader>
             <CardTitle className="font-display">Book Inventory</CardTitle>
             <CardDescription>
-              {filteredBooks.length} books found
+              {loading ? "Loading..." : `${filteredBooks.length} books found`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -134,23 +170,32 @@ const AdminInventory = () => {
                     <TableHead className="font-semibold">ISBN</TableHead>
                     <TableHead className="font-semibold">Title</TableHead>
                     <TableHead className="font-semibold">Category</TableHead>
-                    <TableHead className="font-semibold text-center">Stock</TableHead>
-                    <TableHead className="font-semibold text-center">Threshold</TableHead>
-                    <TableHead className="font-semibold text-right">Status</TableHead>
+                    <TableHead className="font-semibold text-center">
+                      Stock
+                    </TableHead>
+                    <TableHead className="font-semibold text-center">
+                      Threshold
+                    </TableHead>
+                    <TableHead className="font-semibold text-right">
+                      Status
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredBooks.map((book) => {
-                    const isLowStock = book.stockQuantity < book.threshold;
-                    const isOutOfStock = book.stockQuantity === 0;
+                    const isLowStock = book.stock_quantity < book.threshold;
+                    const isOutOfStock = book.stock_quantity === 0;
 
                     return (
                       <TableRow
-                        key={book.id}
+                        key={book.isbn}
                         className={cn(
-                          'transition-colors',
-                          isOutOfStock && 'bg-destructive/5 hover:bg-destructive/10',
-                          isLowStock && !isOutOfStock && 'bg-warning/5 hover:bg-warning/10'
+                          "transition-colors",
+                          isOutOfStock &&
+                            "bg-destructive/5 hover:bg-destructive/10",
+                          isLowStock &&
+                            !isOutOfStock &&
+                            "bg-warning/5 hover:bg-warning/10"
                         )}
                       >
                         <TableCell className="font-mono text-sm">
@@ -159,7 +204,9 @@ const AdminInventory = () => {
                         <TableCell>
                           <div>
                             <p className="font-medium">{book.title}</p>
-                            <p className="text-sm text-muted-foreground">{book.author}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {book.authors}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -168,12 +215,12 @@ const AdminInventory = () => {
                         <TableCell className="text-center">
                           <span
                             className={cn(
-                              'font-semibold',
-                              isOutOfStock && 'text-destructive',
-                              isLowStock && !isOutOfStock && 'text-warning'
+                              "font-semibold",
+                              isOutOfStock && "text-destructive",
+                              isLowStock && !isOutOfStock && "text-warning"
                             )}
                           >
-                            {book.stockQuantity}
+                            {book.stock_quantity}
                           </span>
                         </TableCell>
                         <TableCell className="text-center text-muted-foreground">
@@ -181,11 +228,16 @@ const AdminInventory = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           {isOutOfStock ? (
-                            <Badge variant="outOfStock">Out of Stock</Badge>
+                            <Badge variant="destructive">Out of Stock</Badge>
                           ) : isLowStock ? (
-                            <Badge variant="lowStock">Low Stock</Badge>
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-100 text-amber-800 hover:bg-amber-200"
+                            >
+                              Low Stock
+                            </Badge>
                           ) : (
-                            <Badge variant="inStock">In Stock</Badge>
+                            <Badge variant="default">In Stock</Badge>
                           )}
                         </TableCell>
                       </TableRow>
@@ -198,7 +250,11 @@ const AdminInventory = () => {
         </Card>
       </main>
 
-      <AddBookModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+      <AddBookModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchInventory} // Reload list after adding
+      />
     </div>
   );
 };
