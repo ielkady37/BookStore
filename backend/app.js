@@ -1,40 +1,38 @@
 const express = require("express");
 const cors = require("cors");
-const helmet = require("helmet");
-const mongoSanitize = require("express-mongo-sanitize");
 const morgan = require("morgan");
-const { errorHandler } = require("./middlewares/errorHandler");
-const logger = require("./utils/logger");
+const AppError = require("./utils/appError");
+const globalErrorHandler = require("./middlewares/errorHandler");
 
 const app = express();
 
-// Middlewares
-app.use(helmet()); // Security Headers
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "*",
-    credentials: true,
-  })
-);
-
-app.use(express.json({ limit: "10kb" })); // Limiting body size for (DoS protection)
-app.use(mongoSanitize());
+// MIDDLEWARES
+app.use(cors());
+app.use(express.json());
 
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
-} else {
-  app.use(
-    morgan("combined", {
-      stream: { write: (message) => logger.info(message.trim()) },
-    })
-  );
 }
 
-// API Routes
-// app.use('/api/v1/events', eventRouter);
+// ROUTES
+const userRouter = require("./routes/userRoutes");
+const bookRouter = require("./routes/bookRoutes");
+const orderRouter = require("./routes/orderRoutes");
+const reportRouter = require("./routes/reportRoutes");
+const publisherOrderRouter = require("./routes/publisherOrderRoutes");
 
-// Globale Error Handling Middleware
-app.use(errorHandler);
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/books", bookRouter);
+app.use("/api/v1/orders", orderRouter);
+app.use("/api/v1/reports", reportRouter);
+app.use("/api/v1/publisher-orders", publisherOrderRouter);
+
+// UNHANDLED ROUTES
+app.all("*", (req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+// GLOBAL ERROR HANDLER
+app.use(globalErrorHandler);
 
 module.exports = app;

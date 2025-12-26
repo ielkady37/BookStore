@@ -1,28 +1,42 @@
 const logger = require("../utils/logger");
 
-exports.errorHandler = (err, req, res, next) => {
-  // Default to 500 if unknown
-  const statusCode = err.statusCode || 500;
-  const status = err.status || "error";
+const sendErrorDev = (err, res) => {
+  res.status(err.statusCode).json({
+    status: err.status,
+    error: err,
+    message: err.message,
+    stack: err.stack,
+  });
+};
 
-  // Log the error for the developer
-  logger.error(
-    `${statusCode} - ${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`
-  );
-
-  // Development: Send response to client
-  if (process.env.NODE_ENV === "development") {
-    res.status(statusCode).json({
-      status: status,
-      error: err,
+const sendErrorProd = (err, res) => {
+  // Operational, trusted error: send message to client
+  if (err.isOperational) {
+    res.status(err.statusCode).json({
+      status: err.status,
       message: err.message,
-      stack: err.stack,
     });
+  }
+  // Programming or other unknown error: don't leak details
+  else {
+    // 1) Log error
+    logger.error("ERROR 💥", err);
+
+    // 2) Send generic message
+    res.status(500).json({
+      status: "error",
+      message: "Something went very wrong!",
+    });
+  }
+};
+
+module.exports = (err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || "error";
+
+  if (process.env.NODE_ENV === "development") {
+    sendErrorDev(err, res);
   } else {
-    // Production: No stack traces leaked
-    res.status(statusCode).json({
-      status: status,
-      message: statusCode === 500 ? "Something went wrong!" : err.message,
-    });
+    sendErrorProd(err, res);
   }
 };

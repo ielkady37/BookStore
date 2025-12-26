@@ -1,17 +1,24 @@
-const mongoose = require("mongoose");
-const logger = require("../utils/logger");
+// backend/config/db.js
+const sql = require("mssql");
+require("dotenv").config();
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.DATABASE_URL, {
-      autoIndex: process.env.NODE_ENV === "development", // Don't build indexes in Production (perf hit)
-    });
-
-    logger.info(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    logger.error(`MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
-  }
+const config = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PWD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  options: {
+    encrypt: false,
+    trustServerCertificate: true,
+  },
 };
 
-module.exports = connectDB;
+const poolPromise = new sql.ConnectionPool(config)
+  .connect()
+  .then((pool) => {
+    console.log("✅ SQL Database Connected Successfully");
+    return pool;
+  })
+  .catch((err) => console.error("❌ Database Connection Failed:", err));
+
+module.exports = { sql, poolPromise };
