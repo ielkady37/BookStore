@@ -1,23 +1,28 @@
-const sql = require("mssql");
-require("dotenv").config();
+const mysql = require('mysql2');
+require('dotenv').config();
 
-const config = {
+const pool = mysql.createPool({
+  host: process.env.DB_SERVER,
   user: process.env.DB_USER,
   password: process.env.DB_PWD,
-  server: process.env.DB_SERVER,
   database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  multipleStatements: true, // Required for running triggers/procedures scripts
   options: {
     encrypt: false,
     trustServerCertificate: true,
   },
-};
+});
 
-const poolPromise = new sql.ConnectionPool(config)
-  .connect()
-  .then((pool) => {
-    console.log("✅ SQL Database Connected Successfully");
-    return pool;
-  })
-  .catch((err) => console.error("❌ Database Connection Failed:", err));
+pool.getConnection((err, connection) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+  } else {
+    console.log('Connected to the database successfully!');
+    connection.release();
+  }
+});
 
-module.exports = { sql, poolPromise };
+module.exports = pool.promise();
