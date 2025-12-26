@@ -1,52 +1,58 @@
 const bookQueries = {
   GET_ALL_BOOKS: `
     SELECT 
-      B.isbn, B.title, B.publication_year, B.selling_price, B.category, 
-      B.stock_quantity, B.threshold,
+      B.isbn, B.title, B.publication_year, B.price AS selling_price, 
+      C.name AS category,
+      S.quantity AS stock_quantity, S.threshold,
       P.name AS publisher_name,
-      STRING_AGG(A.name, ', ') AS authors
-    FROM Books B
-    JOIN Publishers P ON B.publisher_id = P.publisher_id
-    LEFT JOIN Book_Authors BA ON B.isbn = BA.isbn
-    LEFT JOIN Authors A ON BA.author_id = A.author_id
+      GROUP_CONCAT(A.name SEPARATOR ', ') AS authors
+    FROM books B
+    JOIN publisher P ON B.publisher_id = P.publisher_id
+    JOIN categories C ON B.category_id = C.category_id
+    LEFT JOIN stock S ON B.isbn = S.isbn
+    LEFT JOIN book_authors BA ON B.isbn = BA.isbn
+    LEFT JOIN authors A ON BA.author_id = A.author_id
     WHERE 
-      (@isbn IS NULL OR B.isbn LIKE '%' + @isbn + '%') AND
-      (@title IS NULL OR B.title LIKE '%' + @title + '%') AND
-      (@category IS NULL OR B.category = @category) AND
-      (@publisher IS NULL OR P.name LIKE '%' + @publisher + '%') AND
-      (@author IS NULL OR A.name LIKE '%' + @author + '%')
+      (? IS NULL OR B.isbn LIKE CONCAT('%', ?, '%')) AND
+      (? IS NULL OR B.title LIKE CONCAT('%', ?, '%')) AND
+      (? IS NULL OR C.name = ?) AND
+      (? IS NULL OR P.name LIKE CONCAT('%', ?, '%')) AND
+      (? IS NULL OR A.name LIKE CONCAT('%', ?, '%'))
     GROUP BY 
-      B.isbn, B.title, B.publication_year, B.selling_price, B.category, 
-      B.stock_quantity, B.threshold, P.name
+      B.isbn, B.title, B.publication_year, B.price, 
+      C.name, S.quantity, S.threshold, P.name
   `,
 
-  FIND_PUBLISHER_BY_NAME: `SELECT publisher_id FROM Publishers WHERE name = @name`,
+  FIND_PUBLISHER_BY_NAME: `SELECT publisher_id FROM publisher WHERE name = ?`,
 
-  FIND_AUTHOR_BY_NAME: `SELECT author_id FROM Authors WHERE name = @name`,
+  FIND_AUTHOR_BY_NAME: `SELECT author_id FROM authors WHERE name = ?`,
 
   INSERT_PUBLISHER: `
-    INSERT INTO Publishers (name, address, phone) 
-    OUTPUT INSERTED.publisher_id 
-    VALUES (@name, 'Unknown Address', '0000000000')
+    INSERT INTO publisher (name, address, phone) 
+    VALUES (?, 'Unknown Address', '0000000000')
   `,
 
   INSERT_AUTHOR: `
-    INSERT INTO Authors (name) 
-    OUTPUT INSERTED.author_id 
-    VALUES (@name)
+    INSERT INTO authors (name) 
+    VALUES (?)
   `,
 
   INSERT_BOOK: `
-    INSERT INTO Books (isbn, title, publisher_id, publication_year, selling_price, category, stock_quantity, threshold)
-    VALUES (@isbn, @title, @pub_id, @year, @price, @category, @stock, @threshold)
+    INSERT INTO books (isbn, title, publisher_id, publication_year, price, category_id)
+    VALUES (?, ?, ?, ?, ?, (SELECT category_id FROM categories WHERE name = ?))
+  `,
+
+  INSERT_STOCK: `
+    INSERT INTO stock (isbn, quantity, threshold)
+    VALUES (?, ?, ?)
   `,
 
   LINK_BOOK_AUTHOR: `
-    INSERT INTO Book_Authors (isbn, author_id) 
-    VALUES (@isbn, @author_id)
+    INSERT INTO book_authors (isbn, author_id) 
+    VALUES (?, ?)
   `,
 
-  UPDATE_BOOK: `UPDATE Books SET selling_price = @price, stock_quantity = @stock WHERE isbn = @isbn`,
+  UPDATE_BOOK: `UPDATE books B JOIN stock S ON B.isbn = S.isbn SET B.price = ?, S.quantity = ? WHERE B.isbn = ?`,
 };
 
 module.exports = bookQueries;

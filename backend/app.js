@@ -20,12 +20,14 @@ const bookRouter = require("./routes/bookRoutes");
 const orderRouter = require("./routes/orderRoutes");
 const reportRouter = require("./routes/reportRoutes");
 const publisherOrderRouter = require("./routes/publisherOrderRoutes");
+const cartRouter = require("./routes/cartRoutes");
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/books", bookRouter);
 app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/reports", reportRouter);
 app.use("/api/v1/publisher-orders", publisherOrderRouter);
+app.use("/api/v1/cart", cartRouter);
 
 // UNHANDLED ROUTES
 app.use((req, res, next) => {

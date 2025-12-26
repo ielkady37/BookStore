@@ -68,28 +68,30 @@ export default function AdminOrders() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.pub_order_id}>
-                    <TableCell>{order.isbn}</TableCell>
-                    <TableCell>{order.quantity}</TableCell>
+                {orders.map((order, index) => (
+                  <TableRow key={`${order.order_id}-${order.isbn}-${index}`}>
+                    <TableCell className="font-mono text-sm">{order.isbn}</TableCell>
+                    <TableCell>
+                      <span className="font-semibold">{order.quantity}</span>
+                    </TableCell>
                     <TableCell>
                       {new Date(order.order_date).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      {order.status === "Received" ? (
+                      {order.status === "CONFIRMED" ? (
                         <Badge variant="default" className="bg-green-600">
-                          Received
+                          Confirmed
                         </Badge>
                       ) : (
-                        <Badge variant="secondary">Ordered</Badge>
+                        <Badge variant="secondary">Pending</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {order.status === "Ordered" && (
+                      {order.status === "PENDING" && (
                         <Button
                           size="sm"
                           onClick={() =>
-                            handleConfirmReceipt(order.pub_order_id)
+                            handleConfirmReceipt(order.order_id)
                           }
                         >
                           <Package className="w-4 h-4 mr-1" /> Confirm

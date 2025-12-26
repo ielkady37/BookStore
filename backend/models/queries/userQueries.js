@@ -1,24 +1,28 @@
 const userQueries = {
   // Selects
   FIND_BY_EMAIL: `
-    SELECT * FROM Users 
-    WHERE email = @email
+    SELECT * FROM users 
+    WHERE email = ?
+  `,
+
+  FIND_BY_USERNAME: `
+    SELECT * FROM users 
+    WHERE username = ?
   `,
 
   FIND_BY_ID: `
-    SELECT user_id, username, fname, lname, email, phone, address, role, credit_card 
-    FROM Users 
-    WHERE user_id = @id
+    SELECT user_id, username, first_name, last_name, email, phone, shipping_address, role 
+    FROM users 
+    WHERE user_id = ?
   `,
 
   // Inserts
   CREATE_USER: `
-    INSERT INTO Users (username, password, fname, lname, email, phone, address, role)
-    OUTPUT INSERTED.user_id, INSERTED.username, INSERTED.email, INSERTED.role
-    VALUES (@username, @password, @fname, @lname, @email, @phone, @address, @role)
+    INSERT INTO users (username, password_hash, first_name, last_name, email, phone, shipping_address, role)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `,
 
-  UPDATE_USER: `UPDATE Users SET fname=@fname, lname=@lname, phone=@phone, address=@address WHERE user_id=@id`,
+  UPDATE_USER: `UPDATE users SET first_name=?, last_name=?, phone=?, shipping_address=? WHERE user_id=?`,
 };
 
 module.exports = userQueries;

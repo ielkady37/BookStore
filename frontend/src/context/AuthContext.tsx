@@ -10,9 +10,12 @@ export interface User {
   user_id: number;
   username: string;
   email: string;
-  role: "admin" | "customer";
-  fname: string;
-  lname: string;
+  role: "ADMIN" | "CUSTOMER" | "admin" | "customer";
+  first_name?: string;
+  last_name?: string;
+  fname?: string;
+  lname?: string;
+  shipping_address?: string;
   address?: string;
   phone?: string;
 }
@@ -72,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         isAuthenticated: !!token,
-        isAdmin: user?.role === "admin",
+        isAdmin: user?.role?.toUpperCase() === "ADMIN",
       }}
     >
       {!loading && children}

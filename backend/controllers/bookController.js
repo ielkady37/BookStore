@@ -1,6 +1,7 @@
 const BookModel = require("../models/bookModel");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const pool = require("../config/db");
 const queries = require("../models/queries/bookQueries");
 
 exports.getAllBooks = catchAsync(async (req, res, next) => {
@@ -43,16 +44,13 @@ exports.createBook = catchAsync(async (req, res, next) => {
 
 exports.updateBook = catchAsync(async (req, res, next) => {
   const { isbn } = req.params;
-  const pool = await poolPromise;
-
   const updates = req.body;
 
-  await pool
-    .request()
-    .input("isbn", sql.VarChar, isbn)
-    .input("price", sql.Decimal, updates.selling_price)
-    .input("stock", sql.Int, updates.stock_quantity)
-    .query(queries.UPDATE_BOOK);
+  await pool.query(queries.UPDATE_BOOK, [
+    updates.selling_price,
+    updates.stock_quantity,
+    isbn,
+  ]);
 
   res.status(200).json({ status: "success", message: "Book updated" });
 });

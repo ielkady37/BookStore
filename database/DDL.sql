@@ -130,3 +130,51 @@ CREATE TABLE payments (
     payment_status ENUM('SUCCESS', 'FAILED'),
     FOREIGN KEY (order_id) REFERENCES customer_order(order_id)
 );
+
+-- ============================================================================
+-- AUTO REORDER TRIGGER
+-- ============================================================================
+-- This trigger automatically creates a publisher order when a book's stock
+-- drops BELOW its threshold. It detects threshold crossing to ensure the
+-- order is placed only once per crossing (not repeatedly while below).
+-- ============================================================================
+
+DELIMITER //
+
+CREATE TRIGGER trg_auto_reorder_stock
+AFTER UPDATE ON stock
+FOR EACH ROW
+BEGIN
+    -- Fixed reorder quantity
+    DECLARE REORDER_QTY INT DEFAULT 50;
+    DECLARE v_publisher_id INT;
+    DECLARE v_new_order_id INT;
+    DECLARE v_pending_order_exists INT DEFAULT 0;
+    
+    -- Only trigger when crossing from ABOVE to BELOW threshold
+    IF OLD.quantity >= OLD.threshold AND NEW.quantity < NEW.threshold THEN
+        
+        -- Get publisher for this book
+        SELECT publisher_id INTO v_publisher_id 
+        FROM books WHERE isbn = NEW.isbn;
+        
+        -- Check for existing pending order (idempotency)
+        SELECT COUNT(*) INTO v_pending_order_exists
+        FROM publisher_orders po
+        JOIN publisher_order_items poi ON po.order_id = poi.order_id
+        WHERE poi.isbn = NEW.isbn AND po.status = 'PENDING';
+        
+        -- Create order only if no pending order exists
+        IF v_pending_order_exists = 0 AND v_publisher_id IS NOT NULL THEN
+            INSERT INTO publisher_orders (publisher_id, order_date, status)
+            VALUES (v_publisher_id, CURDATE(), 'PENDING');
+            
+            SET v_new_order_id = LAST_INSERT_ID();
+            
+            INSERT INTO publisher_order_items (order_id, isbn, quantity)
+            VALUES (v_new_order_id, NEW.isbn, REORDER_QTY);
+        END IF;
+    END IF;
+END //
+
+DELIMITER ;

@@ -1,79 +1,76 @@
-const { sql, poolPromise } = require("../config/db");
+const pool = require("../config/db");
 const queries = require("./queries/bookQueries");
 
 class BookModel {
   static async findAll(filters = {}) {
-    const pool = await poolPromise;
-    const request = pool.request();
+    const params = [
+      filters.isbn || null, filters.isbn || null,
+      filters.title || null, filters.title || null,
+      filters.category || null, filters.category || null,
+      filters.publisher || null, filters.publisher || null,
+      filters.author || null, filters.author || null,
+    ];
 
-    request.input("isbn", sql.VarChar, filters.isbn || null);
-    request.input("title", sql.NVarChar, filters.title || null);
-    request.input("category", sql.VarChar, filters.category || null);
-    request.input("publisher", sql.NVarChar, filters.publisher || null);
-    request.input("author", sql.NVarChar, filters.author || null);
-
-    const result = await request.query(queries.GET_ALL_BOOKS);
-    return result.recordset;
+    const [rows] = await pool.query(queries.GET_ALL_BOOKS, params);
+    return rows;
   }
 
   static async create(bookData) {
-    const pool = await poolPromise;
-    const transaction = new sql.Transaction(pool);
+    const connection = await pool.getConnection();
 
     try {
-      await transaction.begin();
+      await connection.beginTransaction();
 
+      // 1. Handle Publisher
       let pubId;
-      const pubRequest = new sql.Request(transaction);
-      pubRequest.input("name", sql.NVarChar, bookData.publisher);
+      const [pubCheck] = await connection.query(queries.FIND_PUBLISHER_BY_NAME, [bookData.publisher]);
 
-      const pubCheck = await pubRequest.query(queries.FIND_PUBLISHER_BY_NAME);
-
-      if (pubCheck.recordset.length > 0) {
-        pubId = pubCheck.recordset[0].publisher_id;
+      if (pubCheck.length > 0) {
+        pubId = pubCheck[0].publisher_id;
       } else {
-        const pubResult = await pubRequest.query(queries.INSERT_PUBLISHER);
-        pubId = pubResult.recordset[0].publisher_id;
+        const [pubResult] = await connection.query(queries.INSERT_PUBLISHER, [bookData.publisher]);
+        pubId = pubResult.insertId;
       }
 
-      const bookRequest = new sql.Request(transaction);
-      bookRequest.input("isbn", sql.VarChar, bookData.isbn);
-      bookRequest.input("title", sql.NVarChar, bookData.title);
-      bookRequest.input("pub_id", sql.Int, pubId);
-      bookRequest.input("year", sql.Int, bookData.publication_year);
-      bookRequest.input("price", sql.Decimal(10, 2), bookData.selling_price);
-      bookRequest.input("category", sql.VarChar, bookData.category);
-      bookRequest.input("stock", sql.Int, bookData.stock_quantity);
-      bookRequest.input("threshold", sql.Int, bookData.threshold);
+      // 2. Insert Book
+      await connection.query(queries.INSERT_BOOK, [
+        bookData.isbn,
+        bookData.title,
+        pubId,
+        bookData.publication_year,
+        bookData.selling_price,
+        bookData.category,
+      ]);
 
-      await bookRequest.query(queries.INSERT_BOOK);
+      // 3. Insert Stock
+      await connection.query(queries.INSERT_STOCK, [
+        bookData.isbn,
+        bookData.stock_quantity,
+        bookData.threshold,
+      ]);
 
-      // 3. Handle Authors
+      // 4. Handle Authors
       for (const authorName of bookData.authors) {
         let authorId;
-        const authRequest = new sql.Request(transaction);
-        authRequest.input("name", sql.NVarChar, authorName);
+        const [authCheck] = await connection.query(queries.FIND_AUTHOR_BY_NAME, [authorName]);
 
-        const authCheck = await authRequest.query(queries.FIND_AUTHOR_BY_NAME);
-
-        if (authCheck.recordset.length > 0) {
-          authorId = authCheck.recordset[0].author_id;
+        if (authCheck.length > 0) {
+          authorId = authCheck[0].author_id;
         } else {
-          const authResult = await authRequest.query(queries.INSERT_AUTHOR);
-          authorId = authResult.recordset[0].author_id;
+          const [authResult] = await connection.query(queries.INSERT_AUTHOR, [authorName]);
+          authorId = authResult.insertId;
         }
 
-        const linkRequest = new sql.Request(transaction);
-        linkRequest.input("isbn", sql.VarChar, bookData.isbn);
-        linkRequest.input("author_id", sql.Int, authorId);
-        await linkRequest.query(queries.LINK_BOOK_AUTHOR);
+        await connection.query(queries.LINK_BOOK_AUTHOR, [bookData.isbn, authorId]);
       }
 
-      await transaction.commit();
+      await connection.commit();
       return { success: true, isbn: bookData.isbn };
     } catch (err) {
-      await transaction.rollback();
+      await connection.rollback();
       throw err;
+    } finally {
+      connection.release();
     }
   }
 }

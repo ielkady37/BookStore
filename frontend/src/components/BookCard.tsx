@@ -86,7 +86,7 @@ export function BookCard({ book }: BookCardProps) {
           <div className="text-right shrink-0">
             {/* Fixed: Use selling_price */}
             <p className="font-display font-bold text-lg text-primary">
-              ${book.selling_price.toFixed(2)}
+              ${Number(book.selling_price).toFixed(2)}
             </p>
           </div>
         </div>

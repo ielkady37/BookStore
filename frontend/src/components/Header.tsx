@@ -90,7 +90,7 @@ export function Header() {
           {isAuthenticated ? (
             <div className="hidden md:flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">
-                Hi, {user?.fname}
+                Hi, {user?.first_name || user?.fname || user?.username}
               </span>
               <Button
                 variant="ghost"

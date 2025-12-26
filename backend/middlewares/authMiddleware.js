@@ -37,7 +37,11 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    // Convert to uppercase for comparison since DB stores ADMIN/CUSTOMER
+    const userRole = req.user.role?.toUpperCase();
+    const allowedRoles = roles.map((r) => r.toUpperCase());
+
+    if (!allowedRoles.includes(userRole)) {
       return next(
         new AppError("You do not have permission to perform this action", 403)
       );

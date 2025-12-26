@@ -16,16 +16,27 @@ exports.signup = catchAsync(async (req, res, next) => {
     return next(new AppError("Email already in use", 400));
   }
 
+  const existingUsername = await User.findByUsername(req.body.username);
+  if (existingUsername) {
+    return next(new AppError("Username already in use", 400));
+  }
+
   const hashedPassword = await bcrypt.hash(req.body.password, 12);
 
   const newUser = await User.create({
-    ...req.body,
+    username: req.body.username,
     password: hashedPassword,
+    first_name: req.body.first_name,
+    last_name: req.body.last_name,
+    email: req.body.email,
+    phone: req.body.phone,
+    shipping_address: req.body.shipping_address,
+    role: req.body.role || "CUSTOMER",
   });
 
   const token = signToken(newUser.user_id);
 
-  newUser.password = undefined;
+  newUser.password_hash = undefined;
 
   res.status(201).json({
     status: "success",
@@ -43,13 +54,13 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const user = await User.findByEmail(email);
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return next(new AppError("Incorrect email or password", 401));
   }
 
   const token = signToken(user.user_id);
 
-  user.password = undefined;
+  user.password_hash = undefined;
 
   res.status(200).json({
     status: "success",

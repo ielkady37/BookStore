@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model categories {
+  category_id Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(50)
+  books       books[]
+}
+
+model users {
+  user_id          Int              @id @default(autoincrement())
+  username         String           @unique @db.VarChar(50)
+  password_hash    String           @db.VarChar(255)
+  role             users_role
+  first_name       String?          @db.VarChar(50)
+  last_name        String?          @db.VarChar(50)
+  email            String?          @unique @db.VarChar(100)
+  phone            String?          @db.VarChar(20)
+  shipping_address String?          @db.Text
+  created_at       DateTime?        @default(now()) @db.Timestamp(0)
+  cart             cart?
+  customer_order   customer_order[]
+}
+
+enum users_role {
+  ADMIN
+  CUSTOMER
+}
+
+model publisher {
+  publisher_id     Int                @id @default(autoincrement())
+  name             String             @unique @db.VarChar(100)
+  address          String?            @db.Text
+  phone            String?            @db.VarChar(20)
+  books            books[]
+  publisher_orders publisher_orders[]
+}
+
+model authors {
+  author_id    Int            @id @default(autoincrement())
+  name         String         @db.VarChar(100)
+  book_authors book_authors[]
+}
+
+model books {
+  isbn                  String                  @id @db.Char(13)
+  title                 String                  @db.VarChar(200)
+  publication_year      Int?                    @db.Year
+  price                 Decimal                 @db.Decimal(10, 2)
+  publisher_id          Int
+  category_id           Int
+  publisher             publisher               @relation(fields: [publisher_id], references: [publisher_id])
+  category              categories              @relation(fields: [category_id], references: [category_id])
+  book_authors          book_authors[]
+  stock                 stock?
+  cart_items            cart_items[]
+  customer_order_items  customer_order_items[]
+  publisher_order_items publisher_order_items[]
+
+  @@index([publisher_id], map: "publisher_id")
+  @@index([category_id], map: "category_id")
+}
+
+model book_authors {
+  isbn      String  @db.Char(13)
+  author_id Int
+  book      books   @relation(fields: [isbn], references: [isbn], onDelete: Cascade)
+  author    authors @relation(fields: [author_id], references: [author_id], onDelete: Cascade)
+
+  @@id([isbn, author_id])
+  @@index([author_id], map: "author_id")
+}
+
+model stock {
+  isbn      String @id @db.Char(13)
+  quantity  Int
+  threshold Int
+  book      books  @relation(fields: [isbn], references: [isbn], onDelete: Cascade)
+}
+
+model publisher_orders {
+  order_id              Int                     @id @default(autoincrement())
+  publisher_id          Int
+  order_date            DateTime?               @default(now()) @db.Date
+  status                publisher_orders_status @default(PENDING)
+  publisher             publisher               @relation(fields: [publisher_id], references: [publisher_id])
+  publisher_order_items publisher_order_items[]
+
+  @@index([publisher_id], map: "publisher_id")
+}
+
+enum publisher_orders_status {
+  PENDING
+  CONFIRMED
+}
+
+model publisher_order_items {
+  order_id         Int
+  isbn             String           @db.Char(13)
+  quantity         Int
+  publisher_order  publisher_orders @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  book             books            @relation(fields: [isbn], references: [isbn])
+
+  @@id([order_id, isbn])
+  @@index([isbn], map: "isbn")
+}
+
+model cart {
+  cart_id    Int          @id @default(autoincrement())
+  user_id    Int          @unique
+  created_at DateTime?    @default(now()) @db.Timestamp(0)
+  user       users        @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  cart_items cart_items[]
+}
+
+model cart_items {
+  cart_id  Int
+  isbn     String @db.Char(13)
+  quantity Int
+  cart     cart   @relation(fields: [cart_id], references: [cart_id], onDelete: Cascade)
+  book     books  @relation(fields: [isbn], references: [isbn])
+
+  @@id([cart_id, isbn])
+  @@index([isbn], map: "isbn")
+}
+
+model customer_order {
+  order_id             Int                    @id @default(autoincrement())
+  user_id              Int
+  order_date           DateTime?              @default(now()) @db.Timestamp(0)
+  total_price          Decimal                @db.Decimal(10, 2)
+  user                 users                  @relation(fields: [user_id], references: [user_id])
+  customer_order_items customer_order_items[]
+
+  @@index([user_id], map: "user_id")
+}
+
+model customer_order_items {
+  order_id       Int
+  isbn           String         @db.Char(13)
+  quantity       Int
+  price          Decimal        @db.Decimal(10, 2)
+  customer_order customer_order @relation(fields: [order_id], references: [order_id], onDelete: Cascade)
+  book           books          @relation(fields: [isbn], references: [isbn])
+
+  @@id([order_id, isbn])
+  @@index([isbn], map: "isbn")
+}
+
+model payments {
+  payment_id         Int              @id @default(autoincrement())
+  order_id           Int?             @unique
+  credit_card_number String?          @db.Char(16)
+  expiry_date        DateTime?        @db.Date
+  payment_status     payments_status?
+}
+
+enum payments_status {
+  SUCCESS
+  FAILED
+}

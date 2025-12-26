@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { Book, CartItem } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { cartApi } from "@/services/api";
+import { useAuth } from "./AuthContext";
 
 interface CartContextType {
   items: CartItem[];
@@ -12,6 +14,8 @@ interface CartContextType {
   total: number;
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
+  loading: boolean;
+  refreshCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -19,66 +23,134 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
-  // Fixed: Uses 'selling_price' to match DB
   const total = items.reduce(
-    (acc, item) => acc + item.book.selling_price * item.quantity,
+    (acc, item) => acc + Number(item.book.selling_price) * item.quantity,
     0
   );
 
-  const addToCart = (book: Book) => {
-    setItems((prevItems) => {
-      const existingItem = prevItems.find(
-        (item) => item.book.isbn === book.isbn
-      );
+  // Transform API response to CartItem format
+  const transformCartItems = (apiItems: any[]): CartItem[] => {
+    return apiItems.map((item) => ({
+      book: {
+        isbn: item.isbn,
+        title: item.title,
+        selling_price: item.selling_price,
+        publication_year: item.publication_year,
+        category: item.category,
+        publisher_name: item.publisher_name,
+        authors: item.authors,
+        stock_quantity: item.stock_quantity,
+        threshold: item.threshold,
+      },
+      quantity: item.quantity,
+    }));
+  };
 
-      if (existingItem) {
-        toast({
-          title: "Updated Cart",
-          description: `Increased quantity of "${book.title}"`,
-        });
-        return prevItems.map((item) =>
-          item.book.isbn === book.isbn
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
+  // Fetch cart from API
+  const refreshCart = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([]);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await cartApi.getCart();
+      const cartItems = transformCartItems(response.data.data.items || []);
+      setItems(cartItems);
+    } catch (error) {
+      console.error("Failed to fetch cart:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Load cart on auth change
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
+
+  const addToCart = async (book: Book) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await cartApi.addToCart(book.isbn);
+      const cartItems = transformCartItems(response.data.data.items || []);
+      setItems(cartItems);
 
       toast({
         title: "Added to Cart",
         description: `"${book.title}" added to your cart`,
       });
-      // Fixed: Pushes nested { book, quantity } object which matches type now
-      return [...prevItems, { book, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (isbn: string) => {
-    setItems((prevItems) =>
-      prevItems.filter((item) => item.book.isbn !== isbn)
-    );
-    toast({
-      title: "Removed from Cart",
-      description: "Item removed successfully",
-    });
-  };
-
-  const updateQuantity = (isbn: string, quantity: number) => {
-    if (quantity < 1) {
-      removeFromCart(isbn);
-      return;
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart",
+        variant: "destructive",
+      });
     }
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.book.isbn === isbn ? { ...item, quantity } : item
-      )
-    );
   };
 
-  const clearCart = () => {
-    setItems([]);
+  const removeFromCart = async (isbn: string) => {
+    try {
+      const response = await cartApi.removeFromCart(isbn);
+      const cartItems = transformCartItems(response.data.data.items || []);
+      setItems(cartItems);
+
+      toast({
+        title: "Removed from Cart",
+        description: "Item removed successfully",
+      });
+    } catch (error) {
+      console.error("Failed to remove from cart:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateQuantity = async (isbn: string, quantity: number) => {
+    try {
+      if (quantity < 1) {
+        await removeFromCart(isbn);
+        return;
+      }
+
+      const response = await cartApi.updateQuantity(isbn, quantity);
+      const cartItems = transformCartItems(response.data.data.items || []);
+      setItems(cartItems);
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearCart = async () => {
+    try {
+      await cartApi.clearCart();
+      setItems([]);
+    } catch (error) {
+      console.error("Failed to clear cart:", error);
+    }
   };
 
   return (
@@ -93,6 +165,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         total,
         isCartOpen,
         setIsCartOpen,
+        loading,
+        refreshCart,
       }}
     >
       {children}

@@ -20,21 +20,37 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   Plus,
   Search,
   AlertTriangle,
   Package,
   TrendingDown,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/services/api";
 import { Book } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminInventory = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [reorderQuantity, setReorderQuantity] = useState(50);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const { toast } = useToast();
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -51,6 +67,40 @@ const AdminInventory = () => {
   useEffect(() => {
     fetchInventory();
   }, []);
+
+  const handleReorderClick = (book: Book) => {
+    setSelectedBook(book);
+    setReorderQuantity(50);
+    setIsReorderModalOpen(true);
+  };
+
+  const handleReorderSubmit = async () => {
+    if (!selectedBook) return;
+
+    setIsOrdering(true);
+    try {
+      await api.post("/publisher-orders", {
+        isbn: selectedBook.isbn,
+        quantity: reorderQuantity,
+      });
+
+      toast({
+        title: "Order Placed",
+        description: `Ordered ${reorderQuantity} copies of "${selectedBook.title}" from publisher.`,
+      });
+
+      setIsReorderModalOpen(false);
+      setSelectedBook(null);
+    } catch (error: any) {
+      toast({
+        title: "Order Failed",
+        description: error.response?.data?.message || "Failed to place order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsOrdering(false);
+    }
+  };
 
   const filteredBooks = books.filter(
     (book) =>
@@ -176,8 +226,11 @@ const AdminInventory = () => {
                     <TableHead className="font-semibold text-center">
                       Threshold
                     </TableHead>
-                    <TableHead className="font-semibold text-right">
+                    <TableHead className="font-semibold text-center">
                       Status
+                    </TableHead>
+                    <TableHead className="font-semibold text-right">
+                      Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -226,7 +279,7 @@ const AdminInventory = () => {
                         <TableCell className="text-center text-muted-foreground">
                           {book.threshold}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           {isOutOfStock ? (
                             <Badge variant="destructive">Out of Stock</Badge>
                           ) : isLowStock ? (
@@ -238,6 +291,18 @@ const AdminInventory = () => {
                             </Badge>
                           ) : (
                             <Badge variant="default">In Stock</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {book.stock_quantity < book.threshold && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReorderClick(book)}
+                            >
+                              <RefreshCw className="h-4 w-4 mr-1" />
+                              Reorder
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>
@@ -255,6 +320,74 @@ const AdminInventory = () => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={fetchInventory} // Reload list after adding
       />
+
+      {/* Reorder Modal */}
+      <Dialog open={isReorderModalOpen} onOpenChange={setIsReorderModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Order from Publisher
+            </DialogTitle>
+            <DialogDescription>
+              Place an order with the publisher to restock this book.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBook && (
+            <div className="space-y-4 py-4">
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <p className="font-semibold">{selectedBook.title}</p>
+                <p className="text-sm text-muted-foreground">
+                  ISBN: {selectedBook.isbn}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Current Stock: {selectedBook.stock_quantity} / Threshold:{" "}
+                  {selectedBook.threshold}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Order Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={reorderQuantity}
+                  onChange={(e) =>
+                    setReorderQuantity(parseInt(e.target.value) || 1)
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReorderModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="hero"
+              onClick={handleReorderSubmit}
+              disabled={isOrdering}
+            >
+              {isOrdering ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Ordering...
+                </>
+              ) : (
+                <>
+                  <Package className="h-4 w-4 mr-2" />
+                  Place Order
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

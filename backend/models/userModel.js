@@ -1,45 +1,46 @@
-const { sql, poolPromise } = require("../config/db");
+const pool = require("../config/db");
 const queries = require("./queries/userQueries");
 
 class UserModel {
   static async findByEmail(email) {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("email", sql.NVarChar, email)
-      .query(queries.FIND_BY_EMAIL);
+    const [rows] = await pool.query(queries.FIND_BY_EMAIL, [email]);
+    return rows[0];
+  }
 
-    return result.recordset[0];
+  static async findByUsername(username) {
+    const [rows] = await pool.query(queries.FIND_BY_USERNAME, [username]);
+    return rows[0];
   }
 
   static async findById(id) {
-    const pool = await poolPromise;
-    const result = await pool
-      .request()
-      .input("id", sql.Int, id)
-      .query(queries.FIND_BY_ID);
-
-    return result.recordset[0];
+    const [rows] = await pool.query(queries.FIND_BY_ID, [id]);
+    return rows[0];
   }
 
   static async create(userData) {
-    const pool = await poolPromise;
-    const { username, password, fname, lname, email, phone, address, role } =
+    const { username, password, first_name, last_name, email, phone, shipping_address, role } =
       userData;
 
-    const result = await pool
-      .request()
-      .input("username", sql.NVarChar, username)
-      .input("password", sql.NVarChar, password)
-      .input("fname", sql.NVarChar, fname)
-      .input("lname", sql.NVarChar, lname)
-      .input("email", sql.NVarChar, email)
-      .input("phone", sql.NVarChar, phone)
-      .input("address", sql.NVarChar, address)
-      .input("role", sql.NVarChar, role || "customer")
-      .query(queries.CREATE_USER);
+    const [result] = await pool.query(queries.CREATE_USER, [
+      username,
+      password,
+      first_name || null,
+      last_name || null,
+      email,
+      phone || null,
+      shipping_address || null,
+      role || "CUSTOMER",
+    ]);
 
-    return result.recordset[0];
+    // Return the created user
+    const [rows] = await pool.query(queries.FIND_BY_ID, [result.insertId]);
+    return rows[0];
+  }
+
+  static async update(id, userData) {
+    const { first_name, last_name, phone, shipping_address } = userData;
+    await pool.query(queries.UPDATE_USER, [first_name, last_name, phone, shipping_address, id]);
+    return await this.findById(id);
   }
 }
 

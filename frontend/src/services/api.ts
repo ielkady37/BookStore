@@ -29,4 +29,15 @@ api.interceptors.response.use(
   }
 );
 
+// Cart API functions
+export const cartApi = {
+  getCart: () => api.get("/cart"),
+  addToCart: (isbn: string, quantity: number = 1) =>
+    api.post("/cart", { isbn, quantity }),
+  updateQuantity: (isbn: string, quantity: number) =>
+    api.patch(`/cart/${isbn}`, { quantity }),
+  removeFromCart: (isbn: string) => api.delete(`/cart/${isbn}`),
+  clearCart: () => api.delete("/cart"),
+};
+
 export default api;

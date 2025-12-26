@@ -94,7 +94,7 @@ export function CartDrawer() {
                         </p>
                         {/* Fixed: Use selling_price */}
                         <p className="text-sm font-semibold text-primary mt-2">
-                          ${item.book.selling_price.toFixed(2)}
+                          ${Number(item.book.selling_price).toFixed(2)}
                         </p>
                         <div className="flex items-center gap-2 mt-3">
                           <div className="flex items-center border border-border rounded-md bg-background">
@@ -141,7 +141,7 @@ export function CartDrawer() {
                       <div className="text-right">
                         <p className="font-semibold">
                           $
-                          {(item.book.selling_price * item.quantity).toFixed(2)}
+                          {(Number(item.book.selling_price) * item.quantity).toFixed(2)}
                         </p>
                       </div>
                     </div>
