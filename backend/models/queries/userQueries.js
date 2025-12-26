@@ -18,8 +18,20 @@ const userQueries = {
 
   // Inserts
   CREATE_USER: `
-    INSERT INTO users (username, password_hash, first_name, last_name, email, phone, shipping_address, role)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (username, password_hash, is_online, last_activity, first_name, last_name, email, phone, shipping_address, role)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `,
+
+  SET_OFFLINE: `
+    UPDATE users 
+    SET is_online = FALSE, last_activity = ? 
+    WHERE user_id = ?
+  `,
+
+  SET_ONLINE: `
+    UPDATE users 
+    SET is_online = TRUE 
+    WHERE user_id = ?
   `,
 
   UPDATE_USER: `UPDATE users SET first_name=?, last_name=?, phone=?, shipping_address=? WHERE user_id=?`,

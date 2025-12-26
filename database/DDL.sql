@@ -16,6 +16,8 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('ADMIN', 'CUSTOMER') NOT NULL,
+    is_online BOOLEAN DEFAULT FALSE,                    
+    last_activity TIMESTAMP NULL,                       
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     email VARCHAR(100) UNIQUE,
@@ -130,6 +132,149 @@ CREATE TABLE payments (
     payment_status ENUM('SUCCESS', 'FAILED'),
     FOREIGN KEY (order_id) REFERENCES customer_order(order_id)
 );
+
+-- Trigger for Shopping Cart Cleanup on Logout
+DELIMITER //
+
+CREATE TRIGGER trg_clear_cart_on_offline
+AFTER UPDATE ON users
+FOR EACH ROW
+BEGIN
+    DECLARE v_cart_id INT;
+    
+    IF OLD.is_online = TRUE AND NEW.is_online = FALSE THEN
+        SELECT cart_id INTO v_cart_id 
+        FROM cart 
+        WHERE user_id = NEW.user_id;
+        
+        IF v_cart_id IS NOT NULL THEN
+            DELETE FROM cart_items WHERE cart_id = v_cart_id;
+        END IF;
+    END IF;
+END //
+
+DELIMITER ;
+
+
+-- Trigger to Prevent Negative Stock 
+DELIMITER //
+
+CREATE TRIGGER trg_prevent_negative_stock
+BEFORE UPDATE ON stock
+FOR EACH ROW
+BEGIN
+    IF NEW.quantity < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot update stock to negative quantity';
+    END IF;
+END //
+
+DELIMITER ;
+
+-- Trigger for Admin Stock Updates
+DELIMITER //
+
+CREATE TRIGGER trg_update_stock_after_order
+AFTER INSERT ON customer_order_items
+FOR EACH ROW
+BEGIN
+    UPDATE stock 
+    SET quantity = quantity - NEW.quantity
+    WHERE isbn = NEW.isbn;
+END //
+
+DELIMITER ;
+
+-- Trigger for Order Confirmation 
+DELIMITER //
+
+CREATE TRIGGER trg_update_stock_on_order_confirmation
+AFTER UPDATE ON publisher_orders
+FOR EACH ROW
+BEGIN
+    IF OLD.status = 'PENDING' AND NEW.status = 'CONFIRMED' THEN
+        UPDATE stock s
+        JOIN publisher_order_items poi ON s.isbn = poi.isbn
+        SET s.quantity = s.quantity + poi.quantity
+        WHERE poi.order_id = NEW.order_id;
+    END IF;
+END //
+
+DELIMITER ;
+
+-- Trigger to Validate Book Insertion
+DELIMITER //
+
+CREATE TRIGGER trg_validate_new_book
+BEFORE INSERT ON books
+FOR EACH ROW
+BEGIN
+    -- Validate ISBN length (should be 13 characters)
+    IF LENGTH(NEW.isbn) != 13 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ISBN must be exactly 13 characters';
+    END IF;
+    
+    -- Validate publication year is not in the future
+    IF NEW.publication_year > YEAR(CURDATE()) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Publication year cannot be in the future';
+    END IF;
+    
+    -- Validate price is positive
+    IF NEW.price <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Price must be greater than 0';
+    END IF;
+END //
+
+DELIMITER ;
+
+-- Trigger to Prevent Book Deletion if in Stock
+DELIMITER //
+
+CREATE TRIGGER trg_prevent_book_deletion
+BEFORE DELETE ON books
+FOR EACH ROW
+BEGIN
+    DECLARE stock_qty INT;
+    
+    -- Check if book has stock
+    SELECT quantity INTO stock_qty
+    FROM stock
+    WHERE isbn = OLD.isbn;
+    
+    IF stock_qty > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete book with existing stock';
+    END IF;
+END //
+
+DELIMITER ;
+
+-- Trigger for Credit Card Validation 
+DELIMITER //
+
+CREATE TRIGGER trg_validate_credit_card
+BEFORE INSERT ON payments
+FOR EACH ROW
+BEGIN
+    -- Validate credit card number (16 digits)
+    IF NEW.credit_card_number IS NOT NULL AND 
+       (LENGTH(NEW.credit_card_number) != 16 OR 
+        NEW.credit_card_number NOT REGEXP '^[0-9]+$') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid credit card number (must be 16 digits)';
+    END IF;
+    
+    -- Validate expiry date is in the future
+    IF NEW.expiry_date IS NOT NULL AND NEW.expiry_date <= CURDATE() THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Credit card has expired';
+    END IF;
+END //
+
+DELIMITER ;
 
 -- ============================================================================
 -- AUTO REORDER TRIGGER

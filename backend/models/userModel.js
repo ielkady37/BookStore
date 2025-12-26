@@ -24,6 +24,8 @@ class UserModel {
     const [result] = await pool.query(queries.CREATE_USER, [
       username,
       password,
+      true,
+      new Date(),
       first_name || null,
       last_name || null,
       email,
