@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
 const queries = require("./queries/userQueries");
 
@@ -55,13 +56,24 @@ class UserModel {
   }
 
   static async update(id, userData) {
-    const { first_name, last_name, phone, shipping_address } = userData;
+    const { first_name, last_name, phone, shipping_address, password } = userData;
+    let hashedPassword = password;
+    // Only hash password if it's provided (for password change)
+    if (password && password.trim()) {
+      hashedPassword = await bcrypt.hash(password, 12);
+    } else {
+      // If no password provided, fetch existing password
+      const user = await this.findById(id);
+      hashedPassword = user.password_hash;
+    }
+    
     await pool.query(queries.UPDATE_USER, [
       first_name,
       last_name,
       phone,
       shipping_address,
-      id,
+      hashedPassword,
+      id
     ]);
     return await this.findById(id);
   }

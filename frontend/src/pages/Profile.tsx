@@ -35,6 +35,7 @@ export default function Profile() {
       try {
         const res = await api.get("/orders/my-orders");
         setOrders(res.data.data.orders);
+        console.log(res.data.data.orders);
       } catch (error) {
         console.error("Error fetching orders");
       } finally {
@@ -47,10 +48,11 @@ export default function Profile() {
   const handleSave = async () => {
     try {
       await api.patch("/users/update-me", {
-        first_name: userData.fname,
-        last_name: userData.lname,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
         phone: userData.phone,
-        shipping_address: userData.address,
+        shipping_address: userData.shipping_address,
+        password: userData.password,
       });
 
       setIsEditing(false);
@@ -81,7 +83,7 @@ export default function Profile() {
             </div>
             <div>
               <h1 className="font-display text-3xl font-bold">
-                {userData.fname} {userData.lname}
+                {userData.first_name} {userData.last_name}
               </h1>
               <p className="text-muted-foreground">{userData.email}</p>
             </div>
@@ -130,9 +132,9 @@ export default function Profile() {
                       <Label>First Name</Label>
                       <Input
                         disabled={!isEditing}
-                        value={userData.fname}
+                        value={userData.first_name}
                         onChange={(e) =>
-                          setUserData({ ...userData, fname: e.target.value })
+                          setUserData({ ...userData, first_name: e.target.value })
                         }
                       />
                     </div>
@@ -140,9 +142,9 @@ export default function Profile() {
                       <Label>Last Name</Label>
                       <Input
                         disabled={!isEditing}
-                        value={userData.lname}
+                        value={userData.last_name}
                         onChange={(e) =>
-                          setUserData({ ...userData, lname: e.target.value })
+                          setUserData({ ...userData, last_name: e.target.value })
                         }
                       />
                     </div>
@@ -160,9 +162,20 @@ export default function Profile() {
                       <Label>Address</Label>
                       <Input
                         disabled={!isEditing}
-                        value={userData.address}
+                        value={userData.shipping_address}
                         onChange={(e) =>
-                          setUserData({ ...userData, address: e.target.value })
+                          setUserData({ ...userData, shipping_address: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Password</Label>
+                      <Input
+                        disabled={!isEditing}
+                        type="password"
+                        value={userData.password}
+                        onChange={(e) =>
+                          setUserData({ ...userData, password: e.target.value })
                         }
                       />
                     </div>
@@ -206,7 +219,7 @@ export default function Profile() {
                           </div>
                           <div className="flex justify-between font-bold">
                             <span>Total</span>
-                            <span>${order.total_amount}</span>
+                            <span>${order.total_price}</span>
                           </div>
                         </div>
                       ))}

@@ -33,8 +33,10 @@ const userQueries = {
     SET is_online = TRUE 
     WHERE user_id = ?
   `,
-
-  UPDATE_USER: `UPDATE users SET first_name=?, last_name=?, phone=?, shipping_address=? WHERE user_id=?`,
+  UPDATE_USER: `
+    UPDATE users SET first_name = ?, last_name = ?, phone = ?, shipping_address = ?, password_hash = ? 
+    WHERE user_id = ?
+  `,
 };
 
 module.exports = userQueries;

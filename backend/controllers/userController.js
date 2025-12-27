@@ -3,11 +3,8 @@ const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 
 exports.updateMe = catchAsync(async (req, res, next) => {
-  if (req.body.password || req.body.passwordConfirm) {
-    return next(new AppError("This route is not for password updates.", 400));
-  }
 
-  const allowedFields = ["first_name", "last_name", "email", "phone", "shipping_address"];
+  const allowedFields = ["first_name", "last_name", "phone", "shipping_address", "password"];
   const filteredBody = {};
   Object.keys(req.body).forEach((el) => {
     if (allowedFields.includes(el)) filteredBody[el] = req.body[el];
