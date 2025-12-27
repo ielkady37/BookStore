@@ -40,4 +40,10 @@ export const cartApi = {
   clearCart: () => api.delete("/cart"),
 };
 
+export const reportApi = {
+  getDashboard: () => api.get("/reports/dashboard"),
+  getDailySales: (date: string) => api.get(`/reports/daily-sales?date=${date}`),
+  getRestockStats: () => api.get("/reports/restock-history"),
+};
+
 export default api;
