@@ -1,5 +1,5 @@
 const reportQueries = {
-  // a) Total sales for previous month
+  // Total sales for previous month
   GET_SALES_LAST_MONTH: `
     SELECT IFNULL(SUM(total_price), 0) as total_sales
     FROM customer_order
@@ -7,18 +7,19 @@ const reportQueries = {
       AND order_date < DATE_FORMAT(CURDATE(), '%Y-%m-01')
   `,
 
-  // b) Total sales for a certain day
+  // Total sales for a certain day
   GET_SALES_BY_DATE: `
     SELECT IFNULL(SUM(total_price), 0) as total_sales
     FROM customer_order
     WHERE DATE(order_date) = ?
   `,
 
-  // c) Top 5 Customers (Last 3 Months)
+  // Top 5 Customers (Last 3 Months)
   GET_TOP_CUSTOMERS: `
     SELECT 
       U.username, 
       U.email, 
+      COUNT(O.order_id) as orders_count,
       SUM(O.total_price) as total_spent
     FROM users U
     JOIN customer_order O ON U.user_id = O.user_id
@@ -28,10 +29,11 @@ const reportQueries = {
     LIMIT 5
   `,
 
-  // d) Top 10 Selling Books (Last 3 Months)
+  // Top 10 Selling Books (Last 3 Months)
   GET_TOP_SELLING_BOOKS: `
     SELECT 
       B.title, 
+      B.isbn,
       SUM(OI.quantity) as total_copies_sold
     FROM books B
     JOIN customer_order_items OI ON B.isbn = OI.isbn
@@ -42,16 +44,17 @@ const reportQueries = {
     LIMIT 10
   `,
 
-  // e) Restock Frequency
-  // Counts how many times we placed an order to a publisher for this book
+  // Restock Frequency
   GET_RESTOCK_COUNT: `
     SELECT 
       B.title,
-      COUNT(POI.order_id) as restock_count
+      B.isbn,
+      COUNT(POI.order_id) as restock_count,
+      IFNULL(SUM(POI.quantity), 0) as total_quantity_restocked
     FROM books B
     LEFT JOIN publisher_order_items POI ON B.isbn = POI.isbn
-    WHERE (? IS NULL OR B.isbn = ?)
     GROUP BY B.isbn, B.title
+    HAVING restock_count > 0
     ORDER BY restock_count DESC
   `,
 };

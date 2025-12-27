@@ -22,17 +22,25 @@ exports.getDashboardStats = catchAsync(async (req, res, next) => {
 exports.getDailySales = catchAsync(async (req, res, next) => {
   const { date } = req.query;
 
+  if (!date) {
+    return res
+      .status(400)
+      .json({ status: "fail", message: "Date is required" });
+  }
+
   const [rows] = await pool.query(queries.GET_SALES_BY_DATE, [date]);
 
   res.status(200).json({
     status: "success",
-    data: { date, total: rows[0]?.total_sales || 0 },
+    data: {
+      date,
+      total_sales: rows[0]?.total_sales || 0,
+    },
   });
 });
 
 exports.getRestockStats = catchAsync(async (req, res, next) => {
-  const isbn = req.query.isbn || null;
-  const [rows] = await pool.query(queries.GET_RESTOCK_COUNT, [isbn, isbn]);
+  const [rows] = await pool.query(queries.GET_RESTOCK_COUNT);
 
   res.status(200).json({
     status: "success",

@@ -34,3 +34,23 @@ export interface Order {
   status: string;
   total_items: number;
 }
+
+export interface TopCustomer {
+  username: string;
+  email: string;
+  orders_count: number;
+  total_spent: number;
+}
+
+export interface TopBook {
+  title: string;
+  isbn: string;
+  total_copies_sold: number;
+}
+
+export interface RestockStat {
+  title: string;
+  isbn: string;
+  restock_count: number;
+  total_quantity_restocked: number;
+}

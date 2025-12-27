@@ -12,9 +12,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { User, Edit2, Save, X } from "lucide-react";
+import { User, Edit2, Save, X, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/services/api";
@@ -63,10 +69,6 @@ export default function Profile() {
     } catch (err) {
       toast({ title: "Update Failed", variant: "destructive" });
     }
-  };
-
-  const getStatusColor = (status: string) => {
-    return status === "Completed" ? "default" : "secondary";
   };
 
   return (
@@ -189,44 +191,95 @@ export default function Profile() {
               <Card>
                 <CardHeader>
                   <CardTitle>Order History</CardTitle>
+                  <CardDescription>
+                    View your past purchases and details
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loadingOrders ? (
-                    <p>Loading...</p>
+                    <div className="text-center py-4">Loading orders...</div>
                   ) : (
-                    <div className="space-y-4">
-                      {orders.map((order) => (
-                        <div
-                          key={order.order_id}
-                          className="p-4 border rounded-lg space-y-4"
-                        >
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="font-semibold">
-                                Order #{order.order_id}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(
-                                  order.order_date
-                                ).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={getStatusColor(order.status) as any}
-                            >
-                              {order.status}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between font-bold">
-                            <span>Total</span>
-                            <span>${order.total_price}</span>
-                          </div>
+                    <Accordion type="single" collapsible className="w-full">
+                      {orders.length > 0 ? (
+                        orders.map((order) => (
+                          <AccordionItem
+                            key={order.order_id}
+                            value={`item-${order.order_id}`}
+                          >
+                            <AccordionTrigger className="hover:no-underline">
+                              <div className="flex justify-between w-full pr-4 items-center">
+                                <div className="text-left">
+                                  <div className="font-semibold flex items-center gap-2">
+                                    <Package className="h-4 w-4 text-muted-foreground" />
+                                    Order #{order.order_id}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {new Date(
+                                      order.order_date
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <Badge variant="outline">Completed</Badge>
+                                  <span className="font-bold">
+                                    ${order.total_price}
+                                  </span>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="bg-muted/50 rounded-md p-4 mt-2">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b text-muted-foreground">
+                                      <th className="text-left pb-2 font-medium">
+                                        Book Details
+                                      </th>
+                                      <th className="text-left pb-2 font-medium">
+                                        ISBN
+                                      </th>
+                                      <th className="text-right pb-2 font-medium">
+                                        Qty
+                                      </th>
+                                      <th className="text-right pb-2 font-medium">
+                                        Price
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {order.items.map(
+                                      (item: any, idx: number) => (
+                                        <tr
+                                          key={idx}
+                                          className="border-b last:border-0"
+                                        >
+                                          <td className="py-2 font-medium">
+                                            {item.title}
+                                          </td>
+                                          <td className="py-2 text-muted-foreground font-mono text-xs">
+                                            {item.isbn}
+                                          </td>
+                                          <td className="py-2 text-right">
+                                            {item.quantity}
+                                          </td>
+                                          <td className="py-2 text-right">
+                                            ${item.price}
+                                          </td>
+                                        </tr>
+                                      )
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No past orders found.
                         </div>
-                      ))}
-                      {orders.length === 0 && (
-                        <p className="text-muted-foreground">No past orders.</p>
                       )}
-                    </div>
+                    </Accordion>
                   )}
                 </CardContent>
               </Card>
