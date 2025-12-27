@@ -30,7 +30,7 @@ CREATE TABLE publisher (
     publisher_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     address TEXT,
-    phone VARCHAR(20) PRIMARY KEY
+    phone VARCHAR(20) UNIQUE
 );
 
 -- AUTHORS
@@ -166,20 +166,6 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Cannot update stock to negative quantity';
     END IF;
-END //
-
-DELIMITER ;
-
--- Trigger for Admin Stock Updates
-DELIMITER //
-
-CREATE TRIGGER trg_update_stock_after_order
-AFTER INSERT ON customer_order_items
-FOR EACH ROW
-BEGIN
-    UPDATE stock 
-    SET quantity = quantity - NEW.quantity
-    WHERE isbn = NEW.isbn;
 END //
 
 DELIMITER ;
