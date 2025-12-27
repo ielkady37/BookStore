@@ -18,8 +18,8 @@ const userQueries = {
 
   // Inserts
   CREATE_USER: `
-    INSERT INTO users (username, password_hash, is_online, last_activity, first_name, last_name, email, phone, shipping_address, role)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (username, password_hash, is_online, first_name, last_name, email, phone, shipping_address, role)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
 
   SET_OFFLINE: `

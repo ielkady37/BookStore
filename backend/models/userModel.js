@@ -18,14 +18,21 @@ class UserModel {
   }
 
   static async create(userData) {
-    const { username, password, first_name, last_name, email, phone, shipping_address, role } =
-      userData;
+    const {
+      username,
+      password,
+      first_name,
+      last_name,
+      email,
+      phone,
+      shipping_address,
+      role,
+    } = userData;
 
     const [result] = await pool.query(queries.CREATE_USER, [
       username,
       password,
       true,
-      Date.now(),
       first_name,
       last_name,
       email,
@@ -49,7 +56,13 @@ class UserModel {
 
   static async update(id, userData) {
     const { first_name, last_name, phone, shipping_address } = userData;
-    await pool.query(queries.UPDATE_USER, [first_name, last_name, phone, shipping_address, id]);
+    await pool.query(queries.UPDATE_USER, [
+      first_name,
+      last_name,
+      phone,
+      shipping_address,
+      id,
+    ]);
     return await this.findById(id);
   }
 }
