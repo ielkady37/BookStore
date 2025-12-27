@@ -69,7 +69,10 @@ class OrderModel {
       return { success: true, orderId: newOrderId, total: totalAmount };
     } catch (err) {
       await connection.rollback();
-      if (err.message.includes("cannot be negative") || err.code === "ER_CHECK_CONSTRAINT_VIOLATED") {
+      if (
+        err.message.includes("cannot be negative") ||
+        err.code === "ER_CHECK_CONSTRAINT_VIOLATED"
+      ) {
         throw new Error(
           "Transaction failed: One or more items are out of stock."
         );
@@ -81,8 +84,34 @@ class OrderModel {
   }
 
   static async getUserOrders(userId) {
-    const [rows] = await pool.query(queries.GET_USER_ORDERS, [userId]);
-    return rows;
+    const [rows] = await pool.query(queries.GET_USER_ORDERS_WITH_ITEMS, [
+      userId,
+    ]);
+
+    // Group flat rows by order_id
+    const ordersMap = new Map();
+
+    rows.forEach((row) => {
+      if (!ordersMap.has(row.order_id)) {
+        ordersMap.set(row.order_id, {
+          order_id: row.order_id,
+          order_date: row.order_date,
+          total_price: row.total_price,
+          status: "Completed", // Default status as per schema (or derived)
+          items: [],
+        });
+      }
+
+      // Add item to the specific order
+      ordersMap.get(row.order_id).items.push({
+        isbn: row.isbn,
+        title: row.book_title,
+        quantity: row.quantity,
+        price: row.item_price,
+      });
+    });
+
+    return Array.from(ordersMap.values());
   }
 
   static async getOrderDetails(orderId) {
