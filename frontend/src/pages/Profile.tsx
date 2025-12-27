@@ -47,10 +47,10 @@ export default function Profile() {
   const handleSave = async () => {
     try {
       await api.patch("/users/update-me", {
-        fname: userData.fname,
-        lname: userData.lname,
+        first_name: userData.fname,
+        last_name: userData.lname,
         phone: userData.phone,
-        address: userData.address,
+        shipping_address: userData.address,
       });
 
       setIsEditing(false);

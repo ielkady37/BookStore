@@ -23,13 +23,13 @@ const bookQueries = {
       C.name, S.quantity, S.threshold, P.name
   `,
 
-  FIND_PUBLISHER_BY_NAME: `SELECT publisher_id FROM publisher WHERE name = ?`,
+  FIND_PUBLISHER_BY_PHONE: `SELECT publisher_id FROM publisher WHERE phone = ?`,
 
   FIND_AUTHOR_BY_NAME: `SELECT author_id FROM authors WHERE name = ?`,
 
   INSERT_PUBLISHER: `
     INSERT INTO publisher (name, address, phone) 
-    VALUES (?, 'Unknown Address', '0000000000')
+    VALUES (?, ?, ?)
   `,
 
   INSERT_AUTHOR: `

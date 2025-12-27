@@ -41,6 +41,8 @@ export function AddBookModal({
     title: "",
     author: "",
     publisher: "",
+    publisher_address: "",
+    publisher_phone: "",
     publication_year: new Date().getFullYear().toString(), // Added
     category: "",
     price: "",
@@ -61,6 +63,8 @@ export function AddBookModal({
         title: formData.title,
         authors: [formData.author], // Backend expects array
         publisher: formData.publisher,
+        publisher_address: formData.publisher_address,
+        publisher_phone: formData.publisher_phone,
         publication_year: parseInt(formData.publication_year),
         selling_price: parseFloat(formData.price),
         category: formData.category,
@@ -81,6 +85,8 @@ export function AddBookModal({
         title: "",
         author: "",
         publisher: "",
+        publisher_address: "",
+        publisher_phone: "",
         publication_year: new Date().getFullYear().toString(),
         category: "",
         price: "",
@@ -171,6 +177,30 @@ export function AddBookModal({
               />
             </div>
           </div>
+            <div className="space-y-2">
+              <Label htmlFor="publisher_address">Publisher Address</Label>
+              <Input
+                id="publisher_address"
+                placeholder="Publisher address"
+                value={formData.publisher_address}
+                onChange={(e) =>
+                  setFormData({ ...formData, publisher_address: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="publisher_phone">Publisher Phone</Label>
+              <Input
+                id="publisher_phone"
+                placeholder="Publisher phone"
+                value={formData.publisher_phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, publisher_phone: e.target.value })
+                }
+                required
+              />
+            </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">

@@ -30,3 +30,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
     data: { user },
   });
 });
+
+exports.setOffline = catchAsync(async (req, res, next) => {
+  await User.setOffline(req.user.user_id);
+  res.status(200).json({ status: "success", message: "User set to offline" });
+});

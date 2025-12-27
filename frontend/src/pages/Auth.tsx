@@ -86,11 +86,11 @@ const Auth = () => {
       const res = await api.post("/users/signup", {
         username: signupData.username,
         password: signupData.password,
-        fname: signupData.fname,
-        lname: signupData.lname,
+        first_name: signupData.fname,
+        last_name: signupData.lname,
         email: signupData.email,
         phone: signupData.phone,
-        address: signupData.address,
+        shipping_address: signupData.address,
       });
 
       // 2. Update Global State (Auto-login after signup)

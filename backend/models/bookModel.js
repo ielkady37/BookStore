@@ -23,12 +23,12 @@ class BookModel {
 
       // 1. Handle Publisher
       let pubId;
-      const [pubCheck] = await connection.query(queries.FIND_PUBLISHER_BY_NAME, [bookData.publisher]);
-
+      const [pubCheck] = await connection.query(queries.FIND_PUBLISHER_BY_PHONE, [bookData.publisher_phone]);
+      console.log(bookData.publisher, bookData.publisher_address, bookData.publisher_phone);
       if (pubCheck.length > 0) {
         pubId = pubCheck[0].publisher_id;
       } else {
-        const [pubResult] = await connection.query(queries.INSERT_PUBLISHER, [bookData.publisher]);
+        const [pubResult] = await connection.query(queries.INSERT_PUBLISHER, [bookData.publisher,bookData.publisher_address, bookData.publisher_phone]);
         pubId = pubResult.insertId;
       }
 

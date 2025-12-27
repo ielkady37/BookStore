@@ -17,7 +17,6 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('ADMIN', 'CUSTOMER') NOT NULL,
     is_online BOOLEAN DEFAULT FALSE,                    
-    last_activity TIMESTAMP NULL,                       
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     email VARCHAR(100) UNIQUE,
@@ -29,9 +28,9 @@ CREATE TABLE users (
 -- PUBLISHERS
 CREATE TABLE publisher (
     publisher_id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
     address TEXT,
-    phone VARCHAR(20)
+    phone VARCHAR(20) PRIMARY KEY
 );
 
 -- AUTHORS
@@ -276,14 +275,7 @@ END //
 
 DELIMITER ;
 
--- ============================================================================
--- AUTO REORDER TRIGGER
--- ============================================================================
--- This trigger automatically creates a publisher order when a book's stock
--- drops BELOW its threshold. It detects threshold crossing to ensure the
--- order is placed only once per crossing (not repeatedly while below).
--- ============================================================================
-
+-- Trigger for Automatic Stock Reordering
 DELIMITER //
 
 CREATE TRIGGER trg_auto_reorder_stock

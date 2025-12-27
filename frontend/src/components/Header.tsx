@@ -6,6 +6,7 @@ import { ShoppingCart, BookOpen, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import api from "@/services/api";
 
 export function Header() {
   const { itemCount, setIsCartOpen } = useCart();
@@ -16,10 +17,17 @@ export function Header() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-    setIsMobileMenuOpen(false);
+  const handleLogout = async () => {
+    try {
+      await api.post("/users/signout");
+      logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      logout();
+    } finally {
+      setIsMobileMenuOpen(false);
+    }
   };
 
   return (

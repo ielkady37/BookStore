@@ -25,18 +25,26 @@ class UserModel {
       username,
       password,
       true,
-      new Date(),
-      first_name || null,
-      last_name || null,
+      Date.now(),
+      first_name,
+      last_name,
       email,
-      phone || null,
-      shipping_address || null,
+      phone,
+      shipping_address,
       role || "CUSTOMER",
     ]);
 
     // Return the created user
     const [rows] = await pool.query(queries.FIND_BY_ID, [result.insertId]);
     return rows[0];
+  }
+
+  static async setOffline(userId) {
+    await pool.query(queries.SET_OFFLINE, [Date.now(), userId]);
+  }
+
+  static async setOnline(userId) {
+    await pool.query(queries.SET_ONLINE, [userId]);
   }
 
   static async update(id, userData) {

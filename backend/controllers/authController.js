@@ -62,6 +62,8 @@ exports.login = catchAsync(async (req, res, next) => {
 
   user.password_hash = undefined;
 
+  User.setOnline(user.user_id);
+
   res.status(200).json({
     status: "success",
     token,
